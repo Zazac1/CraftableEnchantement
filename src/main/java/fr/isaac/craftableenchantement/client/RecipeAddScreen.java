@@ -95,7 +95,7 @@ public class RecipeAddScreen extends Screen {
     }
 
     // ── layout ────────────────────────────────────────────────────────────
-    private int leftX()  { return PAD; }
+    private int leftX()  { return PAD * 2; }  // 16px — a bit more breathing room from the edge
     private int leftW()  { return width / 2 - PAD - 6; }
     private int rightX() { return width / 2 + 4; }
     private int rightW() { return width - PAD - rightX(); }

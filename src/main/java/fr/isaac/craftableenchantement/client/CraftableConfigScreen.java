@@ -32,12 +32,10 @@ public class CraftableConfigScreen extends Screen {
     protected void init() {
         int btnW = 200, btnH = 20, cx = width / 2 - btnW / 2, cy = height / 2 - 30;
 
-        // Title via MultilineTextWidget — x=8 so text centres at 8+(width-16)/2 = width/2
-        MultilineTextWidget titleWidget = new MultilineTextWidget(
-                8, height / 2 - 56, title, textRenderer);
-        titleWidget.setMaxWidth(width - 16);
-        titleWidget.setCentered(true);
-        addDrawableChild(titleWidget);
+        // Centre the title by computing its pixel width
+        String titleStr = title.getString();
+        int titleX = Math.max(8, (width - textRenderer.getWidth(titleStr)) / 2);
+        addDrawableChild(new MultilineTextWidget(titleX, height / 2 - 56, title, textRenderer));
 
         addDrawableChild(ButtonWidget.builder(Text.literal("Activated Recipes"),
                 b -> client.setScreen(new ActiveRecipesScreen(this))
