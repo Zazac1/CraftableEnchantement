@@ -2,345 +2,379 @@ package fr.isaac.craftableenchantement.client;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.item.Item;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 @Environment(EnvType.CLIENT)
 public class RecipeAddScreen extends Screen {
 
-    // ── vanilla enchantment table ──────────────────────────────────────────
+    // ── vanilla enchantment catalogue ─────────────────────────────────────
     private static final String[][] ENCHANTMENTS = {
-            // Sword
-            {"minecraft:sharpness", "Sharpness", "5"},
-            {"minecraft:smite", "Smite", "5"},
-            {"minecraft:bane_of_arthropods", "Bane of Arthropods", "5"},
-            {"minecraft:fire_aspect", "Fire Aspect", "2"},
-            {"minecraft:knockback", "Knockback", "2"},
-            {"minecraft:looting", "Looting", "3"},
-            {"minecraft:sweeping_edge", "Sweeping Edge", "3"},
-            // Armor
-            {"minecraft:protection", "Protection", "4"},
-            {"minecraft:fire_protection", "Fire Protection", "4"},
-            {"minecraft:blast_protection", "Blast Protection", "4"},
-            {"minecraft:projectile_protection", "Projectile Protection", "4"},
-            {"minecraft:feather_falling", "Feather Falling", "4"},
-            {"minecraft:thorns", "Thorns", "3"},
-            {"minecraft:respiration", "Respiration", "3"},
-            {"minecraft:aqua_affinity", "Aqua Affinity", "1"},
-            {"minecraft:depth_strider", "Depth Strider", "3"},
-            {"minecraft:frost_walker", "Frost Walker", "2"},
-            {"minecraft:soul_speed", "Soul Speed", "3"},
-            {"minecraft:swift_sneak", "Swift Sneak", "3"},
-            // Tools
-            {"minecraft:efficiency", "Efficiency", "5"},
-            {"minecraft:silk_touch", "Silk Touch", "1"},
-            {"minecraft:fortune", "Fortune", "3"},
-            {"minecraft:unbreaking", "Unbreaking", "3"},
-            {"minecraft:mending", "Mending", "1"},
-            // Bow
-            {"minecraft:power", "Power", "5"},
-            {"minecraft:punch", "Punch", "2"},
-            {"minecraft:flame", "Flame", "1"},
-            {"minecraft:infinity", "Infinity", "1"},
-            // Crossbow
-            {"minecraft:multishot", "Multishot", "1"},
-            {"minecraft:piercing", "Piercing", "4"},
-            {"minecraft:quick_charge", "Quick Charge", "3"},
-            // Trident
-            {"minecraft:impaling", "Impaling", "5"},
-            {"minecraft:riptide", "Riptide", "3"},
-            {"minecraft:loyalty", "Loyalty", "3"},
-            {"minecraft:channeling", "Channeling", "1"},
-            // Fishing
-            {"minecraft:luck_of_the_sea", "Luck of the Sea", "3"},
-            {"minecraft:lure", "Lure", "3"},
-            // Curses
-            {"minecraft:binding_curse", "Curse of Binding", "1"},
-            {"minecraft:vanishing_curse", "Curse of Vanishing", "1"},
+            {"minecraft:sharpness",            "Sharpness",            "5"},
+            {"minecraft:smite",                "Smite",                "5"},
+            {"minecraft:bane_of_arthropods",   "Bane of Arthropods",   "5"},
+            {"minecraft:fire_aspect",          "Fire Aspect",          "2"},
+            {"minecraft:knockback",            "Knockback",            "2"},
+            {"minecraft:looting",              "Looting",              "3"},
+            {"minecraft:sweeping_edge",        "Sweeping Edge",        "3"},
+            {"minecraft:protection",           "Protection",           "4"},
+            {"minecraft:fire_protection",      "Fire Protection",      "4"},
+            {"minecraft:blast_protection",     "Blast Protection",     "4"},
+            {"minecraft:projectile_protection","Projectile Protection","4"},
+            {"minecraft:feather_falling",      "Feather Falling",      "4"},
+            {"minecraft:thorns",               "Thorns",               "3"},
+            {"minecraft:respiration",          "Respiration",          "3"},
+            {"minecraft:aqua_affinity",        "Aqua Affinity",        "1"},
+            {"minecraft:depth_strider",        "Depth Strider",        "3"},
+            {"minecraft:frost_walker",         "Frost Walker",         "2"},
+            {"minecraft:soul_speed",           "Soul Speed",           "3"},
+            {"minecraft:swift_sneak",          "Swift Sneak",          "3"},
+            {"minecraft:efficiency",           "Efficiency",           "5"},
+            {"minecraft:silk_touch",           "Silk Touch",           "1"},
+            {"minecraft:fortune",              "Fortune",              "3"},
+            {"minecraft:unbreaking",           "Unbreaking",           "3"},
+            {"minecraft:mending",              "Mending",              "1"},
+            {"minecraft:power",                "Power",                "5"},
+            {"minecraft:punch",                "Punch",                "2"},
+            {"minecraft:flame",                "Flame",                "1"},
+            {"minecraft:infinity",             "Infinity",             "1"},
+            {"minecraft:multishot",            "Multishot",            "1"},
+            {"minecraft:piercing",             "Piercing",             "4"},
+            {"minecraft:quick_charge",         "Quick Charge",         "3"},
+            {"minecraft:impaling",             "Impaling",             "5"},
+            {"minecraft:riptide",              "Riptide",              "3"},
+            {"minecraft:loyalty",              "Loyalty",              "3"},
+            {"minecraft:channeling",           "Channeling",           "1"},
+            {"minecraft:luck_of_the_sea",      "Luck of the Sea",      "3"},
+            {"minecraft:lure",                 "Lure",                 "3"},
+            {"minecraft:binding_curse",        "Curse of Binding",     "1"},
+            {"minecraft:vanishing_curse",      "Curse of Vanishing",   "1"},
     };
+
+    // ── constants ─────────────────────────────────────────────────────────
+    private static final int PAD    = 8;
+    private static final int SLOT   = 20;   // crafting-table slot size (px)
+    private static final int SUGG_H = 13;   // autocomplete row height
+    private static final int MAX_S  = 7;    // max suggestions shown
 
     // ── state ─────────────────────────────────────────────────────────────
     private final CraftableConfigScreen parent;
 
-    private int selectedEnchantIdx = 0;
-    private int enchantScroll = 0;
+    // Enchantment
+    private String         selectedEnchantId   = "";
+    private String         selectedEnchantName = "";
+    private int            enchantMaxLevel     = 5;
+    private List<String[]> enchantSugg         = new ArrayList<>();
+
+    // Ingredient
+    private String       selectedItemId = "";
+    private List<String> itemSugg       = new ArrayList<>();
+
     private int level = 1;
-    private Item selectedIngredient = Items.BOOK;
 
-    private TextFieldWidget enchantSearch;
-    private TextFieldWidget customEnchantField;
-    private TextFieldWidget itemSearch;
+    // Widgets
+    private TextFieldWidget enchantField;
+    private TextFieldWidget itemField;
 
-    private List<String[]> filteredEnchants = new ArrayList<>();
-    private List<Item> filteredItems = new ArrayList<>();
-    private List<Item> allItems = new ArrayList<>();
-
-    private int itemScroll = 0;
-    private static final int ITEM_SIZE = 20;
-    private static final int ROW_HEIGHT = 20;
-    private int enchantCols, itemCols, itemRows;
-    private boolean useCustomEnchant = false;
-
+    // ── constructor ───────────────────────────────────────────────────────
     public RecipeAddScreen(CraftableConfigScreen parent) {
         super(Text.literal("Add Custom Recipe"));
         this.parent = parent;
     }
 
-    // ── layout constants ──────────────────────────────────────────────────
+    // ── layout ────────────────────────────────────────────────────────────
 
-    private int panelTop() { return 28; }
-    private int panelH() { return height - panelTop() - 72; }
-    private int enchantPanelW() { return (width - 30) / 2; }
-    private int itemPanelW() { return width - 30 - enchantPanelW(); }
-    private int enchantPanelX() { return 8; }
-    private int itemPanelX() { return enchantPanelX() + enchantPanelW() + 14; }
-    private int listTop() { return panelTop() + 24; }
-    private int listH() { return panelH() - 44; }
+    private int leftX()   { return PAD; }
+    private int leftW()   { return width / 2 - PAD - 4; }
+    private int rightX()  { return width / 2 + 4; }
+    private int rightW()  { return width - PAD - rightX(); }
+
+    private int enchLabelY() { return 22; }
+    private int enchFieldY() { return enchLabelY() + 10; }
+    private int enchSuggY()  { return enchFieldY() + 14; }
+
+    private int itemLabelY() { return enchSuggY() + MAX_S * SUGG_H + 8; }
+    private int itemFieldY() { return itemLabelY() + 10; }
+    private int itemSuggY()  { return itemFieldY() + 14; }
+
+    private int gridX()  { return rightX() + (rightW() - 3 * SLOT) / 2; }
+    private int gridY()  { return 28; }
 
     // ── init ─────────────────────────────────────────────────────────────
 
     @Override
     protected void init() {
-        loadAllItems();
-        filteredEnchants = filterEnchants("");
-        filteredItems = filterItems("");
+        enchantField = addDrawableChild(new TextFieldWidget(
+                textRenderer, leftX(), enchFieldY(), leftW(), 14,
+                Text.literal("enchant")));
+        enchantField.setPlaceholder(Text.literal("Type enchantment name\u2026"));
+        enchantField.setMaxLength(80);
+        enchantField.setChangedListener(this::onEnchantTyped);
 
-        int ew = enchantPanelW();
-        int iw = itemPanelW();
-        itemCols = Math.max(1, iw / ITEM_SIZE);
+        itemField = addDrawableChild(new TextFieldWidget(
+                textRenderer, leftX(), itemFieldY(), leftW(), 14,
+                Text.literal("item")));
+        itemField.setPlaceholder(Text.literal("Type item id (flint_and_steel\u2026)"));
+        itemField.setMaxLength(80);
+        itemField.setChangedListener(this::onItemTyped);
 
-        // Enchantment search
-        enchantSearch = addDrawableChild(new TextFieldWidget(
-                textRenderer, enchantPanelX(), panelTop() + 2, ew - 2, 18,
-                Text.literal("Search enchantment")));
-        enchantSearch.setPlaceholder(Text.literal("Search..."));
-        enchantSearch.setChangedListener(s -> {
-            filteredEnchants = filterEnchants(s);
-            enchantScroll = 0;
-            selectedEnchantIdx = filteredEnchants.isEmpty() ? -1 : 0;
-            rebuildButtons();
-        });
+        // Level  -  placed below the grid on the right side
+        int lvlY = gridY() + 3 * SLOT + 6;
+        addDrawableChild(ButtonWidget.builder(Text.literal("\u2212"),
+                b -> { if (level > 1) level--; }
+        ).dimensions(rightX() + 4, lvlY, 16, 16).build());
 
-        // Item search
-        itemSearch = addDrawableChild(new TextFieldWidget(
-                textRenderer, itemPanelX(), panelTop() + 2, iw - 2, 18,
-                Text.literal("Search item")));
-        itemSearch.setPlaceholder(Text.literal("Search..."));
-        itemSearch.setChangedListener(s -> {
-            filteredItems = filterItems(s);
-            itemScroll = 0;
-            rebuildButtons();
-        });
+        addDrawableChild(ButtonWidget.builder(Text.literal("+"),
+                b -> { if (level < enchantMaxLevel) level++; }
+        ).dimensions(rightX() + rightW() - 20, lvlY, 16, 16).build());
 
-        // Custom enchant field (shown when no enchantment selected from list)
-        customEnchantField = addDrawableChild(new TextFieldWidget(
-                textRenderer, enchantPanelX(), panelTop() + 24 + listH() + 4, ew - 2, 16,
-                Text.literal("Custom enchantment ID")));
-        customEnchantField.setPlaceholder(Text.literal("mymod:custom_enchant"));
-        customEnchantField.setMaxLength(100);
-        customEnchantField.setChangedListener(s -> useCustomEnchant = !s.isBlank());
-
-        // Level buttons (below panels, above save buttons)
-        int lvlY = height - 46;
-        addDrawableChild(ButtonWidget.builder(Text.literal("−"), b -> {
-            if (level > 1) { level--; rebuildButtons(); }
-        }).dimensions(width / 2 - 38, lvlY, 20, 18).build());
-
-        addDrawableChild(ButtonWidget.builder(Text.literal("+"), b -> {
-            int max = maxLevel();
-            if (level < max) { level++; rebuildButtons(); }
-        }).dimensions(width / 2 + 18, lvlY, 20, 18).build());
-
-        // Cancel
+        // Cancel / Add
         addDrawableChild(ButtonWidget.builder(Text.literal("Cancel"),
                 b -> client.setScreen(parent)
-        ).dimensions(width / 2 - 102, height - 24, 98, 20).build());
+        ).dimensions(width / 2 - 102, height - 22, 98, 18).build());
 
-        // Confirm
-        addDrawableChild(ButtonWidget.builder(Text.literal("✓  Add Recipe"),
+        addDrawableChild(ButtonWidget.builder(Text.literal("\u2713  Add Recipe"),
                 b -> confirm()
-        ).dimensions(width / 2 + 4, height - 24, 98, 20).build());
-
-        rebuildButtons();
+        ).dimensions(width / 2 + 4, height - 22, 98, 18).build());
     }
 
-    private void rebuildButtons() {
-        // Remove and re-add item grid buttons and enchantment row buttons
-        // (done via clearAndInit instead for simplicity)
-        // All dynamic clicks are handled in mouseClicked
-    }
+    // ── autocomplete logic ────────────────────────────────────────────────
 
-    // ── data helpers ─────────────────────────────────────────────────────
-
-    private void loadAllItems() {
-        allItems = Registries.ITEM.stream()
-                .filter(i -> i != Items.AIR)
-                .sorted(Comparator.comparing(i -> Registries.ITEM.getId(i).getPath()))
-                .collect(Collectors.toList());
-    }
-
-    private List<String[]> filterEnchants(String query) {
-        String q = query.toLowerCase(Locale.ROOT);
-        List<String[]> result = new ArrayList<>();
+    private void onEnchantTyped(String q) {
+        if (q.isBlank()) { enchantSugg = new ArrayList<>(); return; }
+        String ql = q.toLowerCase(Locale.ROOT);
+        enchantSugg = new ArrayList<>();
         for (String[] e : ENCHANTMENTS) {
-            if (e[1].toLowerCase(Locale.ROOT).contains(q) || e[0].contains(q))
-                result.add(e);
+            if (e[1].toLowerCase(Locale.ROOT).contains(ql) || e[0].contains(ql)) {
+                enchantSugg.add(e);
+                if (enchantSugg.size() >= MAX_S) break;
+            }
         }
-        return result;
     }
 
-    private List<Item> filterItems(String query) {
-        String q = query.toLowerCase(Locale.ROOT);
-        return allItems.stream()
-                .filter(i -> Registries.ITEM.getId(i).getPath().contains(q))
-                .collect(Collectors.toList());
+    private void onItemTyped(String q) {
+        if (q.isBlank()) { itemSugg = new ArrayList<>(); return; }
+        String ql = q.toLowerCase(Locale.ROOT);
+        itemSugg = new ArrayList<>();
+        for (var entry : Registries.ITEM.getEntrySet()) {
+            if (entry.getValue() == Items.AIR) continue;
+            String id   = entry.getKey().getValue().toString();
+            String path = entry.getKey().getValue().getPath();
+            if (id.contains(ql) || path.contains(ql)) {
+                itemSugg.add(id);
+                if (itemSugg.size() >= MAX_S) break;
+            }
+        }
     }
 
-    private int maxLevel() {
-        if (useCustomEnchant) return 5;
-        if (selectedEnchantIdx < 0 || selectedEnchantIdx >= filteredEnchants.size()) return 5;
-        try { return Integer.parseInt(filteredEnchants.get(selectedEnchantIdx)[2]); }
-        catch (NumberFormatException e) { return 5; }
+    private void selectEnchant(String[] e) {
+        selectedEnchantId   = e[0];
+        selectedEnchantName = e[1];
+        enchantMaxLevel     = Integer.parseInt(e[2]);
+        level               = Math.min(level, enchantMaxLevel);
+        enchantField.setText(e[1]);
+        enchantSugg         = new ArrayList<>();
+    }
+
+    private void selectItem(String id) {
+        selectedItemId = id;
+        String path = id.contains(":") ? id.split(":")[1] : id;
+        itemField.setText(path);
+        itemSugg = new ArrayList<>();
     }
 
     // ── render ────────────────────────────────────────────────────────────
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        int ex = enchantPanelX(), ew = enchantPanelW();
-        int ix = itemPanelX(), iw = itemPanelW();
-        int lh = listH(), lt = listTop();
-        int visible = lh / ROW_HEIGHT;
-        int cols = Math.max(1, (iw - 8) / ITEM_SIZE);
-        int itemsPerPage = cols * Math.max(1, lh / ITEM_SIZE);
-        int startIdx = itemScroll * cols;
 
-        // ── Phase 1 : fills (behind widgets) ─────────────────────────────────
-        ctx.fillGradient(0, 0, this.width, this.height, 0xC0101010, 0xD0101010);
+        // === Phase 1 : fills (behind widgets) ================================
+        ctx.fillGradient(0, 0, width, height, 0xC0101010, 0xD0101010);
 
-        renderPanelFill(ctx, ex, panelTop(), ew, panelH());
-        renderPanelFill(ctx, ix, panelTop(), iw, panelH());
-
-        // Enchantment row backgrounds
-        for (int i = enchantScroll; i < Math.min(filteredEnchants.size(), enchantScroll + visible); i++) {
-            int ry = lt + (i - enchantScroll) * ROW_HEIGHT;
-            boolean selected = i == selectedEnchantIdx && !useCustomEnchant;
-            int bg = selected ? 0xAA3355AA :
-                    (mouseX >= ex && mouseX < ex + ew - 2 && mouseY >= ry && mouseY < ry + ROW_HEIGHT
-                            ? 0x44FFFFFF : 0x33000000);
-            ctx.fill(ex + 1, ry, ex + ew - 2, ry + ROW_HEIGHT, bg);
+        // Crafting grid slots (3×3)
+        int gx0 = gridX(), gy0 = gridY();
+        for (int r = 0; r < 3; r++) {
+            for (int c = 0; c < 3; c++) {
+                int sx = gx0 + c * SLOT, sy = gy0 + r * SLOT;
+                ctx.fill(sx + 1, sy + 1, sx + SLOT - 1, sy + SLOT - 1, 0xFF3A3A3A);
+                drawBox(ctx, sx, sy, SLOT, SLOT, 0xFF555555);
+            }
         }
-        // Scroll bar
-        if (filteredEnchants.size() > visible) {
-            int scrollMax = filteredEnchants.size() - visible;
-            int barH = Math.max(10, lh * visible / filteredEnchants.size());
-            int barY = lt + (lh - barH) * enchantScroll / scrollMax;
-            ctx.fill(ex + ew - 5, barY, ex + ew - 2, barY + barH, 0xAA888888);
+        // Items in slots
+        for (int i = 0; i < 9; i++) {
+            ItemStack stack = slotItem(i);
+            if (!stack.isEmpty())
+                ctx.drawItem(stack, gx0 + (i % 3) * SLOT + 2, gy0 + (i / 3) * SLOT + 2);
         }
+        // Result slot
+        int resX = gx0 + 3 * SLOT + 14, resY = gy0 + SLOT;
+        ctx.fill(resX + 1, resY + 1, resX + SLOT - 1, resY + SLOT - 1, 0xFF3A3A3A);
+        drawBox(ctx, resX, resY, SLOT, SLOT, 0xFF908830);
+        ctx.drawItem(new ItemStack(Items.ENCHANTED_BOOK), resX + 2, resY + 2);
 
-        // Item grid backgrounds + icons
-        for (int i = startIdx; i < Math.min(filteredItems.size(), startIdx + itemsPerPage); i++) {
-            int col = (i - startIdx) % cols;
-            int row = (i - startIdx) / cols;
-            int gx = ix + 4 + col * ITEM_SIZE;
-            int gy = lt + row * ITEM_SIZE;
-            net.minecraft.item.Item item = filteredItems.get(i);
-            boolean sel = item == selectedIngredient;
-            if (sel) ctx.fill(gx - 1, gy - 1, gx + 17, gy + 17, 0xAA3355AA);
-            else if (mouseX >= gx && mouseX < gx + 16 && mouseY >= gy && mouseY < gy + 16)
-                ctx.fill(gx - 1, gy - 1, gx + 17, gy + 17, 0x44FFFFFF);
-            ctx.drawItem(new net.minecraft.item.ItemStack(item), gx, gy);
-        }
-
-        // ── Phase 2 : widgets ─────────────────────────────────────────────────
+        // === Phase 2 : widgets ===============================================
         super.render(ctx, mouseX, mouseY, delta);
 
-        // ── Phase 3 : text (toujours visible en 1.21.11) ──────────────────────
+        // === Phase 3 : text + suggestion overlays ============================
         ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
 
-        // Panel labels
-        drawPanelLabel(ctx, ex, panelTop(), "Enchantment");
-        drawPanelLabel(ctx, ix, panelTop(), "Ingredient");
+        // Input labels
+        ctx.drawTextWithShadow(textRenderer, "Enchantment:",
+                leftX(), enchLabelY(), 0xCCCCCC);
+        ctx.drawTextWithShadow(textRenderer, "Ingredient:",
+                leftX(), itemLabelY(), 0xCCCCCC);
 
-        // Enchantment list text
-        for (int i = enchantScroll; i < Math.min(filteredEnchants.size(), enchantScroll + visible); i++) {
-            String[] e = filteredEnchants.get(i);
-            int ry = lt + (i - enchantScroll) * ROW_HEIGHT;
-            boolean selected = i == selectedEnchantIdx && !useCustomEnchant;
-            int col = selected ? 0xFFFFFF : 0xCCCCCC;
-            ctx.drawTextWithShadow(textRenderer, e[1] + " (max " + e[2] + ")",
-                    ex + 4, ry + 6, col);
+        // Arrow
+        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("\u2192"),
+                gx0 + 3 * SLOT + 7, gy0 + SLOT + 6, 0xFFFFFF);
+
+        // Level label
+        int lvlY = gridY() + 3 * SLOT + 6;
+        ctx.drawCenteredTextWithShadow(textRenderer,
+                Text.literal("Level ")
+                        .append(Text.literal(toRoman(level)).withColor(0xFFD700))
+                        .append(Text.literal("/" + toRoman(enchantMaxLevel)).withColor(0x777777)),
+                rightX() + rightW() / 2, lvlY + 3, 0xFFFFFF);
+
+        // Preview
+        String en = selectedEnchantName.isEmpty() ? "?" : selectedEnchantName;
+        String it = selectedItemId.isEmpty() ? "?"
+                : (selectedItemId.contains(":") ? selectedItemId.split(":")[1] : selectedItemId)
+                .replace("_", " ");
+        ctx.drawCenteredTextWithShadow(textRenderer,
+                Text.literal(level + "\u00d7 XP + Book + " + it + "  \u2192  " + en + " " + toRoman(level)),
+                width / 2, height - 38, 0xAAAAAA);
+
+        // Enchantment suggestions overlay
+        if (!enchantSugg.isEmpty()) {
+            int sy = enchSuggY(), sw = leftW();
+            int sh = enchantSugg.size() * SUGG_H;
+            ctx.fill(leftX(), sy, leftX() + sw, sy + sh, 0xFF1A1C28);
+            drawBox(ctx, leftX(), sy, sw, sh, 0xFF4A5578);
+            for (int i = 0; i < enchantSugg.size(); i++) {
+                String[] e = enchantSugg.get(i);
+                int ry = sy + i * SUGG_H;
+                boolean hov = mouseX >= leftX() && mouseX < leftX() + sw
+                        && mouseY >= ry && mouseY < ry + SUGG_H;
+                if (hov) ctx.fill(leftX() + 1, ry, leftX() + sw - 1, ry + SUGG_H, 0x553355BB);
+                ctx.drawTextWithShadow(textRenderer,
+                        e[1] + " \u00a77(max " + e[2] + ")",
+                        leftX() + 4, ry + 3, hov ? 0xFFFFFF : 0xBBBBBB);
+            }
         }
 
-        // Custom enchant hint
-        ctx.drawTextWithShadow(textRenderer, Text.literal("Or enter a custom ID:"),
-                ex, panelTop() + 24 + lh + 2, 0x999999);
+        // Item suggestions overlay
+        if (!itemSugg.isEmpty()) {
+            int sy = itemSuggY(), sw = leftW();
+            int sh = itemSugg.size() * SUGG_H;
+            ctx.fill(leftX(), sy, leftX() + sw, sy + sh, 0xFF1A1C28);
+            drawBox(ctx, leftX(), sy, sw, sh, 0xFF4A5578);
+            for (int i = 0; i < itemSugg.size(); i++) {
+                String id = itemSugg.get(i);
+                int ry = sy + i * SUGG_H;
+                boolean hov = mouseX >= leftX() && mouseX < leftX() + sw
+                        && mouseY >= ry && mouseY < ry + SUGG_H;
+                if (hov) ctx.fill(leftX() + 1, ry, leftX() + sw - 1, ry + SUGG_H, 0x553355BB);
+                var item = Registries.ITEM.get(Identifier.of(id));
+                if (item != null && item != Items.AIR)
+                    ctx.drawItem(new ItemStack(item), leftX() + 2, ry);
+                String path = id.contains(":") ? id.split(":")[1] : id;
+                ctx.drawTextWithShadow(textRenderer,
+                        path.replace("_", " ") + " \u00a78" + id,
+                        leftX() + 20, ry + 3, hov ? 0xFFFFFF : 0xBBBBBB);
+            }
+        }
 
-        // Selected ingredient label
-        String ingLabel = net.minecraft.registry.Registries.ITEM.getId(selectedIngredient)
-                .getPath().replace("_", " ");
-        ctx.drawTextWithShadow(textRenderer,
-                Text.literal("Selected: ").append(Text.literal(ingLabel).withColor(0xFFD700)),
-                ix + 4, panelTop() + panelH() - 14, 0xCCCCCC);
-
-        // Level label (above buttons)
-        ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("Level: ").append(Text.literal(toRoman(level)).withColor(0xFFD700)),
-                width / 2, height - 58, 0xFFFFFF);
-
-        // Recipe preview
-        String enchName = useCustomEnchant
-                ? customEnchantField.getText()
-                : (selectedEnchantIdx >= 0 && selectedEnchantIdx < filteredEnchants.size()
-                ? filteredEnchants.get(selectedEnchantIdx)[1] : "?");
-        String ingName = net.minecraft.registry.Registries.ITEM.getId(selectedIngredient)
-                .getPath().replace("_", " ");
-        ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.literal(level + "× XP Bottle + Book + " + ingName + "  →  " + enchName + " " + toRoman(level)),
-                width / 2, height - 70, 0xAAAAAA);
-
-        // Item tooltips (last, always on top)
-        for (int i = startIdx; i < Math.min(filteredItems.size(), startIdx + itemsPerPage); i++) {
-            int col = (i - startIdx) % cols;
-            int row = (i - startIdx) / cols;
-            int gx = ix + 4 + col * ITEM_SIZE;
-            int gy = lt + row * ITEM_SIZE;
-            if (mouseX >= gx && mouseX < gx + 16 && mouseY >= gy && mouseY < gy + 16) {
-                ctx.drawItemTooltip(textRenderer,
-                        new net.minecraft.item.ItemStack(filteredItems.get(i)), mouseX, mouseY);
+        // Ingredient slot tooltip
+        if (!selectedItemId.isEmpty()) {
+            int s = level + 1;
+            if (s < 9) {
+                int sx = gx0 + (s % 3) * SLOT + 2, sy = gy0 + (s / 3) * SLOT + 2;
+                if (mouseX >= sx && mouseX < sx + 16 && mouseY >= sy && mouseY < sy + 16) {
+                    var item = Registries.ITEM.get(Identifier.tryParse(selectedItemId));
+                    if (item != null && item != Items.AIR)
+                        ctx.drawItemTooltip(textRenderer, new ItemStack(item), mouseX, mouseY);
+                }
             }
         }
     }
 
-    /** Panel fills + borders, no text. */
-    private void renderPanelFill(DrawContext ctx, int x, int y, int w, int h) {
-        ctx.fill(x, y + 20, x + w, y + h, 0x88101010);
-        drawBox(ctx, x, y + 20, w, h, 0xFF505050);
+    // ── slot content ──────────────────────────────────────────────────────
+
+    private ItemStack slotItem(int slot) {
+        if (slot < level) return new ItemStack(Items.EXPERIENCE_BOTTLE);
+        if (slot == level) return new ItemStack(Items.BOOK);
+        if (slot == level + 1 && !selectedItemId.isEmpty()) {
+            var item = Registries.ITEM.get(Identifier.tryParse(selectedItemId));
+            if (item != null && item != Items.AIR) return new ItemStack(item);
+        }
+        return ItemStack.EMPTY;
     }
 
-    /** Panel label text, drawn AFTER super.render(). */
-    private void drawPanelLabel(DrawContext ctx, int x, int y, String label) {
-        int lw = textRenderer.getWidth(label) + 10;
-        ctx.fill(x + 4, y, x + 4 + lw, y + 20, 0x88101010);
-        drawBox(ctx, x + 4, y, lw, 20, 0xFF505050);
-        ctx.drawTextWithShadow(textRenderer, label, x + 8, y + 6, 0xDDDDDD);
+    // ── mouse ─────────────────────────────────────────────────────────────
+
+    @Override
+    public boolean mouseClicked(Click click, boolean focused) {
+        double mx = click.x(), my = click.y();
+
+        if (!enchantSugg.isEmpty()) {
+            int sy = enchSuggY(), sw = leftW();
+            if (mx >= leftX() && mx < leftX() + sw
+                    && my >= sy && my < sy + enchantSugg.size() * SUGG_H) {
+                int idx = (int) (my - sy) / SUGG_H;
+                if (idx >= 0 && idx < enchantSugg.size()) {
+                    selectEnchant(enchantSugg.get(idx));
+                    return true;
+                }
+            }
+        }
+
+        if (!itemSugg.isEmpty()) {
+            int sy = itemSuggY(), sw = leftW();
+            if (mx >= leftX() && mx < leftX() + sw
+                    && my >= sy && my < sy + itemSugg.size() * SUGG_H) {
+                int idx = (int) (my - sy) / SUGG_H;
+                if (idx >= 0 && idx < itemSugg.size()) {
+                    selectItem(itemSugg.get(idx));
+                    return true;
+                }
+            }
+        }
+
+        return super.mouseClicked(click, focused);
     }
+
+    // ── keyboard ──────────────────────────────────────────────────────────
+
+    @Override
+    public boolean keyPressed(KeyInput k) {
+        if (k.key() == 256) { client.setScreen(parent); return true; }
+        return super.keyPressed(k);
+    }
+
+    // ── confirm ───────────────────────────────────────────────────────────
+
+    private void confirm() {
+        if (selectedEnchantId.isEmpty() || selectedItemId.isEmpty()) return;
+        String entry = selectedEnchantId + "|" + level + "|" + selectedItemId;
+        if (!parent.recipes.contains(entry)) parent.recipes.add(entry);
+        client.setScreen(parent);
+    }
+
+    // ── helpers ───────────────────────────────────────────────────────────
 
     private void drawBox(DrawContext ctx, int x, int y, int w, int h, int c) {
         ctx.drawHorizontalLine(x, x + w - 1, y, c);
@@ -349,108 +383,10 @@ public class RecipeAddScreen extends Screen {
         ctx.drawVerticalLine(x + w - 1, y, y + h - 1, c);
     }
 
-    // ── mouse ─────────────────────────────────────────────────────────────
-
-    @Override
-    public boolean mouseClicked(Click click, boolean focused) {
-        if (super.mouseClicked(click, focused)) return true;
-        double mx = click.x();
-        double my = click.y();
-
-        // Enchantment list click
-        int ex = enchantPanelX();
-        int ew = enchantPanelW();
-        int lt = listTop();
-        int lh = listH();
-        int visible = lh / ROW_HEIGHT;
-        if (mx >= ex && mx < ex + ew - 4 && my >= lt && my < lt + lh) {
-            int row = (int) (my - lt) / ROW_HEIGHT;
-            int idx = row + enchantScroll;
-            if (idx >= 0 && idx < filteredEnchants.size()) {
-                selectedEnchantIdx = idx;
-                useCustomEnchant = false;
-                customEnchantField.setText("");
-                level = Math.min(level, maxLevel());
-            }
-            return true;
-        }
-
-        // Item grid click
-        int ix = itemPanelX();
-        int iw = itemPanelW();
-        int cols = Math.max(1, (iw - 8) / ITEM_SIZE);
-        if (mx >= ix + 4 && mx < ix + iw && my >= lt && my < lt + lh) {
-            int col = (int) (mx - ix - 4) / ITEM_SIZE;
-            int row = (int) (my - lt) / ITEM_SIZE;
-            int idx = itemScroll * cols + row * cols + col;
-            if (idx >= 0 && idx < filteredItems.size()) {
-                selectedIngredient = filteredItems.get(idx);
-            }
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public boolean mouseScrolled(double mx, double my, double hAmt, double vAmt) {
-        int ex = enchantPanelX();
-        int ew = enchantPanelW();
-        int lh = listH();
-        int visible = lh / ROW_HEIGHT;
-
-        if (mx >= ex && mx < ex + ew) {
-            enchantScroll = Math.max(0, Math.min(
-                    enchantScroll - (int) vAmt,
-                    Math.max(0, filteredEnchants.size() - visible)));
-        } else {
-            int ix = itemPanelX();
-            int iw = itemPanelW();
-            int cols = Math.max(1, (iw - 8) / ITEM_SIZE);
-            int totalRows = (int) Math.ceil((double) filteredItems.size() / cols);
-            int visibleRows = lh / ITEM_SIZE;
-            itemScroll = Math.max(0, Math.min(itemScroll - (int) vAmt,
-                    Math.max(0, totalRows - visibleRows)));
-        }
-        return true;
-    }
-
-    // ── keyboard ──────────────────────────────────────────────────────────
-
-    @Override
-    public boolean keyPressed(KeyInput keyInput) {
-        if (keyInput.key() == 256) { client.setScreen(parent); return true; }
-        return super.keyPressed(keyInput);
-    }
-
-    // ── confirm ───────────────────────────────────────────────────────────
-
-    private void confirm() {
-        String enchId;
-        if (useCustomEnchant) {
-            enchId = customEnchantField.getText().trim();
-        } else if (selectedEnchantIdx >= 0 && selectedEnchantIdx < filteredEnchants.size()) {
-            enchId = filteredEnchants.get(selectedEnchantIdx)[0];
-        } else {
-            return;
-        }
-        if (enchId.isEmpty()) return;
-
-        String ingId = Registries.ITEM.getId(selectedIngredient).toString();
-        String entry = enchId + "|" + level + "|" + ingId;
-        if (!parent.recipes.contains(entry)) {
-            parent.recipes.add(entry);
-        }
-        client.setScreen(parent);
-    }
-
     private String toRoman(int n) {
         return switch (n) {
-            case 1 -> "I";
-            case 2 -> "II";
-            case 3 -> "III";
-            case 4 -> "IV";
-            case 5 -> "V";
-            default -> String.valueOf(n);
+            case 1 -> "I"; case 2 -> "II"; case 3 -> "III";
+            case 4 -> "IV"; case 5 -> "V"; default -> String.valueOf(n);
         };
     }
 
