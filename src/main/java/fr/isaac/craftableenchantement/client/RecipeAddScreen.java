@@ -200,14 +200,18 @@ public class RecipeAddScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.literal("✓  Add Recipe"),
                 b -> confirm()
         ).dimensions(width / 2 + 4, height - 22, 98, 18).build());
-    }
 
-    private int previewBoxY() {
-        return Math.min(itemSuggY() + (itemSugg.isEmpty() ? 2 : itemSugg.size() * SUGG_H + 4), height - 60);
         // Restore focus to the field the user was typing in
         if (restoreFocus == 1) { setFocused(enchantField); restoreFocus = 0; }
         else if (restoreFocus == 2) { setFocused(itemField); restoreFocus = 0; }
     }
+
+    private int previewBoxY() {
+        return Math.min(itemSuggY() + (itemSugg.isEmpty() ? 2 : itemSugg.size() * SUGG_H + 4), height - 60);
+    }
+
+    // ── autocomplete ──────────────────────────────────────────────────────
+    private void onEnchantTyped(String q) {
         if (q.isBlank()) { enchantSugg = new ArrayList<>(); }
         else {
             String ql = q.toLowerCase(Locale.ROOT);
