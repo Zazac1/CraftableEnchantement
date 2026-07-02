@@ -134,53 +134,69 @@ public class CraftableConfigScreen extends Screen {
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+        // ── Phase 1 : fills (behind widgets) ─────────────────────────────────
         ctx.fillGradient(0, 0, this.width, this.height, 0xC0101010, 0xD0101010);
 
-        // Title
-        ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
+        int visibleRecipes = maxVisibleRecipes();
+        int visibleDisabled = maxVisibleDisabled();
 
-        drawSection(ctx, "Custom Recipes",
+        renderSectionFill(ctx, "Custom Recipes",
                 PAD, recipeTop() - SEC_TITLE - 2,
                 width - PAD * 2, recipeSectionHeight() + SEC_TITLE + 2);
-        drawSection(ctx, "Disabled Enchantments",
+        renderSectionFill(ctx, "Disabled Enchantments",
                 PAD, disabledTop() - SEC_TITLE - 2,
                 width - PAD * 2, height - 34 - (disabledTop() - SEC_TITLE - 2));
 
-        // Recipe rows
-        int visibleRecipes = maxVisibleRecipes();
         for (int i = recipeScroll; i < Math.min(recipes.size(), recipeScroll + visibleRecipes); i++) {
             int y = recipeTop() + (i - recipeScroll) * ROW;
-            String raw = recipes.get(i);
-            String display = formatRecipeLabel(raw);
             ctx.fill(PAD + 1, y, width - PAD - 24, y + ROW - 2, 0x55000000);
-            ctx.drawTextWithShadow(textRenderer, display, PAD + 5, y + 7, 0xE0E0E0);
         }
-        if (recipes.isEmpty()) {
-            ctx.drawTextWithShadow(textRenderer, Text.literal("No custom recipes — click '+ Add Recipe'"),
-                    PAD + 5, recipeTop() + 6, 0x888888);
-        }
-
-        // Disabled rows (below the text field)
-        int visibleDisabled = maxVisibleDisabled();
         for (int i = disabledScroll; i < Math.min(disabled.size(), disabledScroll + visibleDisabled); i++) {
             int y = disabledTop() + (i - disabledScroll) * ROW + 22;
             ctx.fill(PAD + 1, y, width - PAD - 24, y + ROW - 2, 0x55000000);
+        }
+
+        // ── Phase 2 : widgets ─────────────────────────────────────────────────
+        super.render(ctx, mouseX, mouseY, delta);
+
+        // ── Phase 3 : text (toujours visible en 1.21.11) ──────────────────────
+        ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
+
+        drawSectionLabel(ctx, "Custom Recipes",    PAD, recipeTop() - SEC_TITLE - 2);
+        drawSectionLabel(ctx, "Disabled Enchantments", PAD, disabledTop() - SEC_TITLE - 2);
+
+        for (int i = recipeScroll; i < Math.min(recipes.size(), recipeScroll + visibleRecipes); i++) {
+            int y = recipeTop() + (i - recipeScroll) * ROW;
+            ctx.drawTextWithShadow(textRenderer, formatRecipeLabel(recipes.get(i)),
+                    PAD + 5, y + 7, 0xE0E0E0);
+        }
+        if (recipes.isEmpty()) {
+            ctx.drawTextWithShadow(textRenderer,
+                    Text.literal("No custom recipes — click '+ Add Recipe'"),
+                    PAD + 5, recipeTop() + 6, 0xAAAAAA);
+        }
+
+        for (int i = disabledScroll; i < Math.min(disabled.size(), disabledScroll + visibleDisabled); i++) {
+            int y = disabledTop() + (i - disabledScroll) * ROW + 22;
             ctx.drawTextWithShadow(textRenderer, disabled.get(i), PAD + 5, y + 6, 0xE0E0E0);
         }
         if (disabled.isEmpty()) {
             ctx.drawTextWithShadow(textRenderer, Text.literal("No disabled enchantments"),
-                    PAD + 5, disabledTop() + 22 + 5, 0x888888);
+                    PAD + 5, disabledTop() + 22 + 5, 0xAAAAAA);
         }
-
-        super.render(ctx, mouseX, mouseY, delta);
     }
 
-    private void drawSection(DrawContext ctx, String label, int x, int y, int w, int h) {
+    /** Fills + borders only, no text. */
+    private void renderSectionFill(DrawContext ctx, String label, int x, int y, int w, int h) {
         ctx.fill(x, y + SEC_TITLE, x + w, y + h, 0x88101010);
         drawBox(ctx, x, y + SEC_TITLE, w, h, 0xFF505050);
         int lw = textRenderer.getWidth(label) + 8;
         ctx.fill(x + 6, y, x + 6 + lw, y + SEC_TITLE, 0x88101010);
         drawBox(ctx, x + 6, y, lw, SEC_TITLE, 0xFF505050);
+    }
+
+    /** Text label only, drawn AFTER super.render(). */
+    private void drawSectionLabel(DrawContext ctx, String label, int x, int y) {
         ctx.drawTextWithShadow(textRenderer, label, x + 10, y + 3, 0xDDDDDD);
     }
 

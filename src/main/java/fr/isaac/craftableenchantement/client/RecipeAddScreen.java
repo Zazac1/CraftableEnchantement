@@ -223,32 +223,30 @@ public class RecipeAddScreen extends Screen {
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        ctx.fillGradient(0, 0, this.width, this.height, 0xC0101010, 0xD0101010);
-        ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
-
-        // ── Enchantment panel ──────────────────────────────────────────
-        int ex = enchantPanelX();
-        int ew = enchantPanelW();
-        int lh = listH();
-        int lt = listTop();
-
-        drawPanel(ctx, ex, panelTop(), ew, panelH(), "Enchantment");
-
-        // Enchantment list rows
+        int ex = enchantPanelX(), ew = enchantPanelW();
+        int ix = itemPanelX(), iw = itemPanelW();
+        int lh = listH(), lt = listTop();
         int visible = lh / ROW_HEIGHT;
+        int cols = Math.max(1, (iw - 8) / ITEM_SIZE);
+        int itemsPerPage = cols * Math.max(1, lh / ITEM_SIZE);
+        int startIdx = itemScroll * cols;
+
+        // ── Phase 1 : fills (behind widgets) ─────────────────────────────────
+        ctx.fillGradient(0, 0, this.width, this.height, 0xC0101010, 0xD0101010);
+
+        renderPanelFill(ctx, ex, panelTop(), ew, panelH());
+        renderPanelFill(ctx, ix, panelTop(), iw, panelH());
+
+        // Enchantment row backgrounds
         for (int i = enchantScroll; i < Math.min(filteredEnchants.size(), enchantScroll + visible); i++) {
-            String[] e = filteredEnchants.get(i);
             int ry = lt + (i - enchantScroll) * ROW_HEIGHT;
             boolean selected = i == selectedEnchantIdx && !useCustomEnchant;
-            int bg = selected ? 0xAA3355AA : (mouseX >= ex && mouseX < ex + ew - 2
-                    && mouseY >= ry && mouseY < ry + ROW_HEIGHT ? 0x44FFFFFF : 0x33000000);
+            int bg = selected ? 0xAA3355AA :
+                    (mouseX >= ex && mouseX < ex + ew - 2 && mouseY >= ry && mouseY < ry + ROW_HEIGHT
+                            ? 0x44FFFFFF : 0x33000000);
             ctx.fill(ex + 1, ry, ex + ew - 2, ry + ROW_HEIGHT, bg);
-            int col = selected ? 0xFFFFFF : 0xCCCCCC;
-            ctx.drawTextWithShadow(textRenderer, e[1] + " (max " + e[2] + ")",
-                    ex + 4, ry + 6, col);
         }
-
-        // Scroll indicator if needed
+        // Scroll bar
         if (filteredEnchants.size() > visible) {
             int scrollMax = filteredEnchants.size() - visible;
             int barH = Math.max(10, lh * visible / filteredEnchants.size());
@@ -256,65 +254,88 @@ public class RecipeAddScreen extends Screen {
             ctx.fill(ex + ew - 5, barY, ex + ew - 2, barY + barH, 0xAA888888);
         }
 
-        // Custom enchant hint
-        ctx.drawTextWithShadow(textRenderer, Text.literal("Or enter a custom ID:"),
-                ex, panelTop() + 24 + lh + 2, 0x999999);
-
-        // ── Item panel ────────────────────────────────────────────────
-        int ix = itemPanelX();
-        int iw = itemPanelW();
-        drawPanel(ctx, ix, panelTop(), iw, panelH(), "Ingredient");
-
-        // Item grid
-        int cols = Math.max(1, (iw - 8) / ITEM_SIZE);
-        int itemsPerPage = cols * Math.max(1, lh / ITEM_SIZE);
-        int startIdx = itemScroll * cols;
+        // Item grid backgrounds + icons
         for (int i = startIdx; i < Math.min(filteredItems.size(), startIdx + itemsPerPage); i++) {
             int col = (i - startIdx) % cols;
             int row = (i - startIdx) / cols;
             int gx = ix + 4 + col * ITEM_SIZE;
             int gy = lt + row * ITEM_SIZE;
-            Item item = filteredItems.get(i);
+            net.minecraft.item.Item item = filteredItems.get(i);
             boolean sel = item == selectedIngredient;
             if (sel) ctx.fill(gx - 1, gy - 1, gx + 17, gy + 17, 0xAA3355AA);
             else if (mouseX >= gx && mouseX < gx + 16 && mouseY >= gy && mouseY < gy + 16)
                 ctx.fill(gx - 1, gy - 1, gx + 17, gy + 17, 0x44FFFFFF);
-            ctx.drawItem(new ItemStack(item), gx, gy);
-            // Tooltip on hover
-            if (mouseX >= gx && mouseX < gx + 16 && mouseY >= gy && mouseY < gy + 16) {
-                ctx.drawItemTooltip(textRenderer, new ItemStack(item), mouseX, mouseY);
-            }
+            ctx.drawItem(new net.minecraft.item.ItemStack(item), gx, gy);
         }
 
+        // ── Phase 2 : widgets ─────────────────────────────────────────────────
+        super.render(ctx, mouseX, mouseY, delta);
+
+        // ── Phase 3 : text (toujours visible en 1.21.11) ──────────────────────
+        ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
+
+        // Panel labels
+        drawPanelLabel(ctx, ex, panelTop(), "Enchantment");
+        drawPanelLabel(ctx, ix, panelTop(), "Ingredient");
+
+        // Enchantment list text
+        for (int i = enchantScroll; i < Math.min(filteredEnchants.size(), enchantScroll + visible); i++) {
+            String[] e = filteredEnchants.get(i);
+            int ry = lt + (i - enchantScroll) * ROW_HEIGHT;
+            boolean selected = i == selectedEnchantIdx && !useCustomEnchant;
+            int col = selected ? 0xFFFFFF : 0xCCCCCC;
+            ctx.drawTextWithShadow(textRenderer, e[1] + " (max " + e[2] + ")",
+                    ex + 4, ry + 6, col);
+        }
+
+        // Custom enchant hint
+        ctx.drawTextWithShadow(textRenderer, Text.literal("Or enter a custom ID:"),
+                ex, panelTop() + 24 + lh + 2, 0x999999);
+
         // Selected ingredient label
-        String ingLabel = Registries.ITEM.getId(selectedIngredient).getPath().replace("_", " ");
+        String ingLabel = net.minecraft.registry.Registries.ITEM.getId(selectedIngredient)
+                .getPath().replace("_", " ");
         ctx.drawTextWithShadow(textRenderer,
                 Text.literal("Selected: ").append(Text.literal(ingLabel).withColor(0xFFD700)),
                 ix + 4, panelTop() + panelH() - 14, 0xCCCCCC);
 
-        // ── Level label (above buttons, always fully visible) ──────────
+        // Level label (above buttons)
         ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.literal("Level: ").append(
-                        Text.literal(toRoman(level)).withColor(0xFFD700)),
+                Text.literal("Level: ").append(Text.literal(toRoman(level)).withColor(0xFFD700)),
                 width / 2, height - 58, 0xFFFFFF);
 
-        // ── Recipe preview (above level label) ──────────────────────────
+        // Recipe preview
         String enchName = useCustomEnchant
                 ? customEnchantField.getText()
                 : (selectedEnchantIdx >= 0 && selectedEnchantIdx < filteredEnchants.size()
-                ? filteredEnchants.get(selectedEnchantIdx)[1]
-                : "?");
-        String ingName = Registries.ITEM.getId(selectedIngredient).getPath().replace("_", " ");
-        String preview = level + "× XP Bottle + Book + " + ingName + "  →  " + enchName + " " + toRoman(level);
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(preview),
+                ? filteredEnchants.get(selectedEnchantIdx)[1] : "?");
+        String ingName = net.minecraft.registry.Registries.ITEM.getId(selectedIngredient)
+                .getPath().replace("_", " ");
+        ctx.drawCenteredTextWithShadow(textRenderer,
+                Text.literal(level + "× XP Bottle + Book + " + ingName + "  →  " + enchName + " " + toRoman(level)),
                 width / 2, height - 70, 0xAAAAAA);
 
-        super.render(ctx, mouseX, mouseY, delta);
+        // Item tooltips (last, always on top)
+        for (int i = startIdx; i < Math.min(filteredItems.size(), startIdx + itemsPerPage); i++) {
+            int col = (i - startIdx) % cols;
+            int row = (i - startIdx) / cols;
+            int gx = ix + 4 + col * ITEM_SIZE;
+            int gy = lt + row * ITEM_SIZE;
+            if (mouseX >= gx && mouseX < gx + 16 && mouseY >= gy && mouseY < gy + 16) {
+                ctx.drawItemTooltip(textRenderer,
+                        new net.minecraft.item.ItemStack(filteredItems.get(i)), mouseX, mouseY);
+            }
+        }
     }
 
-    private void drawPanel(DrawContext ctx, int x, int y, int w, int h, String label) {
+    /** Panel fills + borders, no text. */
+    private void renderPanelFill(DrawContext ctx, int x, int y, int w, int h) {
         ctx.fill(x, y + 20, x + w, y + h, 0x88101010);
         drawBox(ctx, x, y + 20, w, h, 0xFF505050);
+    }
+
+    /** Panel label text, drawn AFTER super.render(). */
+    private void drawPanelLabel(DrawContext ctx, int x, int y, String label) {
         int lw = textRenderer.getWidth(label) + 10;
         ctx.fill(x + 4, y, x + 4 + lw, y + 20, 0x88101010);
         drawBox(ctx, x + 4, y, lw, 20, 0xFF505050);
