@@ -17,6 +17,9 @@
       "fr.isaac.craftableenchantement.CraftableEnchantementMod"
     ]
   },
+  "mixins": [
+    "craftableenchantement.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.19.3",
     "minecraft": "1.21.11",
