@@ -145,7 +145,7 @@ public class DisabledRecipesScreen extends Screen {
         });
 
         // Title
-        MultilineTextWidget titleW = new MultilineTextWidget(width / 2, 10, title, textRenderer);
+        MultilineTextWidget titleW = new MultilineTextWidget(PAD, 10, title, textRenderer);
         titleW.setMaxWidth(width - 20);
         titleW.setCentered(true);
         addDrawableChild(titleW);
@@ -181,10 +181,10 @@ public class DisabledRecipesScreen extends Screen {
             int from = scroll + 1;
             int to   = Math.min(scroll + maxVisible(), ROWS.length);
             MultilineTextWidget hint = new MultilineTextWidget(
-                    width / 2, listTop() + listH() + 4,
+                    PAD, listTop() + listH() + 4,
                     Text.literal(from + " - " + to + " / " + ROWS.length).withColor(0x777777),
                     textRenderer);
-            hint.setMaxWidth(width - 20);
+            hint.setMaxWidth(width - PAD * 2);
             hint.setCentered(true);
             hint.setMaxRows(1);
             addDrawableChild(hint);

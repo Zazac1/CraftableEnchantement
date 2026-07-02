@@ -133,15 +133,17 @@ public class RecipeAddScreen extends Screen {
         addDrawableChild(makeLabel(leftX(), enchLabelY(), "Enchantment:", 0xCCCCCC));
         addDrawableChild(makeLabel(leftX(), itemLabelY(),  "Ingredient:",  0xCCCCCC));
 
-        // Level label (re-created on clearAndInit so it reflects current state)
+        // Level label — centred within the slider track bounds
         String lvlTxt = enchantMaxLevel <= 1 ? "Level I"
                 : (minLevel == maxLevel ? "Level " + toRoman(minLevel)
-                : "Level " + toRoman(minLevel) + " – " + toRoman(maxLevel));
-        addDrawableChild(makeCenteredLabel(sliderX() + sliderW() / 2,
-                sliderY() + sliderH() + 5, lvlTxt + " / " + toRoman(enchantMaxLevel), 0xFFD700));
+                : "Level " + toRoman(minLevel) + " - " + toRoman(maxLevel));
+        addDrawableChild(new MultilineTextWidget(
+                sliderX(), sliderY() + sliderH() + 5,
+                Text.literal(lvlTxt + " / " + toRoman(enchantMaxLevel)).withColor(0xFFD700),
+                textRenderer).setMaxWidth(sliderW()).setCentered(true).setMaxRows(1));
 
-        // Arrow
-        addDrawableChild(makeCenteredLabel(gridX() + 3 * SLOT + 6, gridY() + SLOT + 5, "→", 0xFFFFFF));
+        // Arrow — left-aligned at precise position between grid and result slot
+        addDrawableChild(makeLabel(gridX() + 3 * SLOT + 3, gridY() + SLOT + 5, "\u2192", 0xFFFFFF));
 
         // Selected item name
         if (!selectedItemId.isEmpty()) {
@@ -149,14 +151,6 @@ public class RecipeAddScreen extends Screen {
                     selectedItemName, 0x88FF88));
         }
 
-        // Preview line
-        String en = selectedEnchantName.isEmpty() ? "?" : selectedEnchantName;
-        String it = selectedItemName.isEmpty() ? "?" : selectedItemName.toLowerCase(Locale.ROOT);
-        String lvPart = (enchantMaxLevel > 1 && minLevel != maxLevel)
-                ? toRoman(minLevel) + "–" + toRoman(maxLevel) : toRoman(minLevel);
-        addDrawableChild(makeCenteredLabel(width / 2, height - 36,
-                (minLevel == maxLevel ? minLevel + "\u00d7" : minLevel + "\u2013" + maxLevel + "\u00d7")
-                        + " XP + Book + " + it + "  \u2192  " + en + " " + lvPart, 0x999999));
 
         // Enchant suggestions via MultilineTextWidget
         if (!enchantSugg.isEmpty()) {
@@ -414,8 +408,11 @@ public class RecipeAddScreen extends Screen {
     }
 
     private MultilineTextWidget makeCenteredLabel(int cx, int y, String text, int color) {
-        MultilineTextWidget w = new MultilineTextWidget(cx, y, Text.literal(text).withColor(color), textRenderer);
-        w.setMaxWidth(width - 10); w.setCentered(true); w.setMaxRows(1); return w;
+        // cx is the desired text-centre X. Widget starts at cx-maxW/2 so setCentered puts text at cx.
+        int maxW = width - 10;
+        int x = Math.max(0, cx - maxW / 2);
+        MultilineTextWidget w = new MultilineTextWidget(x, y, Text.literal(text).withColor(color), textRenderer);
+        w.setMaxWidth(maxW); w.setCentered(true); w.setMaxRows(1); return w;
     }
 
     private void drawBox(DrawContext ctx, int x, int y, int w, int h, int c) {

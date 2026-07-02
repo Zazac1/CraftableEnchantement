@@ -32,10 +32,10 @@ public class CraftableConfigScreen extends Screen {
     protected void init() {
         int btnW = 200, btnH = 20, cx = width / 2 - btnW / 2, cy = height / 2 - 30;
 
-        // Title via MultilineTextWidget (the ONLY working text API in MC 1.21.11)
+        // Title via MultilineTextWidget — x=PAD so text centres at PAD+(width-2PAD)/2 = width/2
         MultilineTextWidget titleWidget = new MultilineTextWidget(
-                width / 2, height / 2 - 56, title, textRenderer);
-        titleWidget.setMaxWidth(width - 20);
+                PAD, height / 2 - 56, title, textRenderer);
+        titleWidget.setMaxWidth(width - PAD * 2);
         titleWidget.setCentered(true);
         addDrawableChild(titleWidget);
 

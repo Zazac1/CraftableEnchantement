@@ -29,8 +29,8 @@ public class ActiveRecipesScreen extends Screen {
         // Background fill drawable (fills work fine)
         addDrawable((ctx, mx, my, d) -> renderFills(ctx));
 
-        // Title via MultilineTextWidget
-        MultilineTextWidget titleW = new MultilineTextWidget(width / 2, 10, title, textRenderer);
+        // Title — left edge at PAD so setCentered centres at screen-centre
+        MultilineTextWidget titleW = new MultilineTextWidget(PAD, 10, title, textRenderer);
         titleW.setMaxWidth(width - 20);
         titleW.setCentered(true);
         addDrawableChild(titleW);
@@ -60,10 +60,10 @@ public class ActiveRecipesScreen extends Screen {
         // Empty message
         if (recipes.isEmpty()) {
             MultilineTextWidget empty = new MultilineTextWidget(
-                    width / 2, listTop() + 8,
+                    PAD, listTop() + 8,
                     Text.literal("No custom recipes. Use \"Create a Recipe\".").withColor(0x999999),
                     textRenderer);
-            empty.setMaxWidth(width - 20);
+            empty.setMaxWidth(width - PAD * 2);
             empty.setCentered(true);
             addDrawableChild(empty);
         }
