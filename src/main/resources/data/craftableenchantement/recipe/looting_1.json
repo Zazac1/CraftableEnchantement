@@ -2,17 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:book"},
-    {"item": "minecraft:gold_ingot"}
+    "minecraft:experience_bottle",
+    "minecraft:book",
+    "minecraft:gold_ingot"
   ],
   "result": {
     "id": "minecraft:enchanted_book",
     "components": {
       "minecraft:stored_enchantments": {
-        "levels": {
-          "minecraft:looting": 1
-        }
+        "minecraft:looting": 1
       }
     }
   }

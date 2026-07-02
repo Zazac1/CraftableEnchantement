@@ -2,17 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:book"},
-    {"item": "minecraft:blaze_rod"}
+    "minecraft:experience_bottle",
+    "minecraft:book",
+    "minecraft:blaze_rod"
   ],
   "result": {
     "id": "minecraft:enchanted_book",
     "components": {
       "minecraft:stored_enchantments": {
-        "levels": {
-          "minecraft:flame": 1
-        }
+        "minecraft:flame": 1
       }
     }
   }

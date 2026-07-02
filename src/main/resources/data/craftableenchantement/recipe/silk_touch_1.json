@@ -2,17 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:book"},
-    {"item": "minecraft:string"}
+    "minecraft:experience_bottle",
+    "minecraft:book",
+    "minecraft:string"
   ],
   "result": {
     "id": "minecraft:enchanted_book",
     "components": {
       "minecraft:stored_enchantments": {
-        "levels": {
-          "minecraft:silk_touch": 1
-        }
+        "minecraft:silk_touch": 1
       }
     }
   }

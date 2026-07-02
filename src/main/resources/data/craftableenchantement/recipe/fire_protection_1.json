@@ -2,17 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:book"},
-    {"item": "minecraft:magma_cream"}
+    "minecraft:experience_bottle",
+    "minecraft:book",
+    "minecraft:magma_cream"
   ],
   "result": {
     "id": "minecraft:enchanted_book",
     "components": {
       "minecraft:stored_enchantments": {
-        "levels": {
-          "minecraft:fire_protection": 1
-        }
+        "minecraft:fire_protection": 1
       }
     }
   }

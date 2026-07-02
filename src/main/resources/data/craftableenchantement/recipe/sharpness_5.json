@@ -2,21 +2,19 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:book"},
-    {"item": "minecraft:iron_sword"}
+    "minecraft:experience_bottle",
+    "minecraft:experience_bottle",
+    "minecraft:experience_bottle",
+    "minecraft:experience_bottle",
+    "minecraft:experience_bottle",
+    "minecraft:book",
+    "minecraft:iron_sword"
   ],
   "result": {
     "id": "minecraft:enchanted_book",
     "components": {
       "minecraft:stored_enchantments": {
-        "levels": {
-          "minecraft:sharpness": 5
-        }
+        "minecraft:sharpness": 5
       }
     }
   }

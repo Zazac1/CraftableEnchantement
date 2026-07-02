@@ -2,17 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:book"},
-    {"item": "minecraft:slimeball"}
+    "minecraft:experience_bottle",
+    "minecraft:book",
+    "minecraft:slimeball"
   ],
   "result": {
     "id": "minecraft:enchanted_book",
     "components": {
       "minecraft:stored_enchantments": {
-        "levels": {
-          "minecraft:punch": 1
-        }
+        "minecraft:punch": 1
       }
     }
   }

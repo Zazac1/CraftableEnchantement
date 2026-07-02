@@ -2,19 +2,17 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:book"},
-    {"item": "minecraft:tnt"}
+    "minecraft:experience_bottle",
+    "minecraft:experience_bottle",
+    "minecraft:experience_bottle",
+    "minecraft:book",
+    "minecraft:tnt"
   ],
   "result": {
     "id": "minecraft:enchanted_book",
     "components": {
       "minecraft:stored_enchantments": {
-        "levels": {
-          "minecraft:blast_protection": 3
-        }
+        "minecraft:blast_protection": 3
       }
     }
   }

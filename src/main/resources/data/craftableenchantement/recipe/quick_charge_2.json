@@ -2,18 +2,16 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:book"},
-    {"item": "minecraft:redstone"}
+    "minecraft:experience_bottle",
+    "minecraft:experience_bottle",
+    "minecraft:book",
+    "minecraft:redstone"
   ],
   "result": {
     "id": "minecraft:enchanted_book",
     "components": {
       "minecraft:stored_enchantments": {
-        "levels": {
-          "minecraft:quick_charge": 2
-        }
+        "minecraft:quick_charge": 2
       }
     }
   }

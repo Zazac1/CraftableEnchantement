@@ -2,17 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:book"},
-    {"item": "minecraft:obsidian"}
+    "minecraft:experience_bottle",
+    "minecraft:book",
+    "minecraft:obsidian"
   ],
   "result": {
     "id": "minecraft:enchanted_book",
     "components": {
       "minecraft:stored_enchantments": {
-        "levels": {
-          "minecraft:unbreaking": 1
-        }
+        "minecraft:unbreaking": 1
       }
     }
   }

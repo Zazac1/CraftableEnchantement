@@ -2,17 +2,15 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:book"},
-    {"item": "minecraft:phantom_membrane"}
+    "minecraft:experience_bottle",
+    "minecraft:book",
+    "minecraft:phantom_membrane"
   ],
   "result": {
     "id": "minecraft:enchanted_book",
     "components": {
       "minecraft:stored_enchantments": {
-        "levels": {
-          "minecraft:swift_sneak": 1
-        }
+        "minecraft:swift_sneak": 1
       }
     }
   }

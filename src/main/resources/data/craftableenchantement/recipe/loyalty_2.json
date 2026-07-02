@@ -2,18 +2,16 @@
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:experience_bottle"},
-    {"item": "minecraft:book"},
-    {"item": "minecraft:tripwire_hook"}
+    "minecraft:experience_bottle",
+    "minecraft:experience_bottle",
+    "minecraft:book",
+    "minecraft:tripwire_hook"
   ],
   "result": {
     "id": "minecraft:enchanted_book",
     "components": {
       "minecraft:stored_enchantments": {
-        "levels": {
-          "minecraft:loyalty": 2
-        }
+        "minecraft:loyalty": 2
       }
     }
   }
