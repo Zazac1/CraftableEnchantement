@@ -17,8 +17,10 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 /**
  * Add-recipe screen.
@@ -130,13 +132,13 @@ public class RecipeAddScreen extends Screen {
         addDrawable((ctx, mx, my, d) -> renderFills(ctx, mx, my));
 
         // ── Static labels via MultilineTextWidget ─────────────────────────
-        addDrawableChild(makeLabel(leftX(), enchLabelY(), "Enchantment:", 0xCCCCCC));
-        addDrawableChild(makeLabel(leftX(), itemLabelY(),  "Ingredient:",  0xCCCCCC));
+        addDrawableChild(makeLabel(leftX(), enchLabelY(), "Select enchantment:", 0xCCCCCC));
+        addDrawableChild(makeLabel(leftX(), itemLabelY(),  "Select ingredient:",  0xCCCCCC));
 
         // Level label — centred within the slider track bounds
-        String lvlTxt = enchantMaxLevel <= 1 ? "Level I"
-                : (minLevel == maxLevel ? "Level " + toRoman(minLevel)
-                : "Level " + toRoman(minLevel) + " - " + toRoman(maxLevel));
+        String lvlTxt = enchantMaxLevel <= 1 ? "Levels: I"
+                : (minLevel == maxLevel ? "Levels: " + toRoman(minLevel)
+                : "Levels: " + toRoman(minLevel) + " - " + toRoman(maxLevel));
         addDrawableChild(new MultilineTextWidget(
                 sliderX(), sliderY() + sliderH() + 5,
                 Text.literal(lvlTxt + " / " + toRoman(enchantMaxLevel)).withColor(0xFFD700),
@@ -206,8 +208,12 @@ public class RecipeAddScreen extends Screen {
 
     // ── autocomplete ──────────────────────────────────────────────────────
     private void onEnchantTyped(String q) {
-        if (q.isBlank()) { enchantSugg = new ArrayList<>(); }
-        else {
+        if (q.isBlank()) {
+            enchantSugg = java.util.Arrays.stream(ENCHANTMENTS)
+                    .sorted(Comparator.comparing(e -> e[1]))
+                    .limit(MAX_S)
+                    .collect(Collectors.toList());
+        } else {
             String ql = q.toLowerCase(Locale.ROOT);
             enchantSugg = new ArrayList<>();
             for (String[] e : ENCHANTMENTS)
@@ -219,8 +225,15 @@ public class RecipeAddScreen extends Screen {
     }
 
     private void onItemTyped(String q) {
-        if (q.isBlank()) { itemSugg = new ArrayList<>(); }
-        else {
+        if (q.isBlank()) {
+            itemSugg = Registries.ITEM.getEntrySet().stream()
+                    .filter(e -> e.getValue() != Items.AIR)
+                    .map(e -> new String[]{e.getKey().getValue().toString(),
+                                           pathToName(e.getKey().getValue().toString())})
+                    .sorted(Comparator.comparing(s -> s[1]))
+                    .limit(MAX_S)
+                    .collect(Collectors.toList());
+        } else {
             String ql = q.toLowerCase(Locale.ROOT);
             itemSugg = new ArrayList<>();
             for (var entry : Registries.ITEM.getEntrySet()) {
@@ -339,12 +352,40 @@ public class RecipeAddScreen extends Screen {
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         ctx.fillGradient(0, 0, width, height, 0xC0101010, 0xD0101010);
         super.render(ctx, mouseX, mouseY, delta);
+        // Colored borders over text fields — drawn after all widgets so always on top
+        if (enchantField != null) drawBox(ctx, leftX(), enchFieldY(), leftW(), 14,
+                enchantField.isFocused() ? 0xFF5577DD : 0xFF404050);
+        if (itemField != null) drawBox(ctx, leftX(), itemFieldY(), leftW(), 14,
+                itemField.isFocused() ? 0xFF5577DD : 0xFF404050);
     }
 
     // ── mouse ─────────────────────────────────────────────────────────────
     @Override
     public boolean mouseClicked(Click click, boolean focused) {
         double mx = click.x(), my = click.y();
+
+        // ── Explicit text-field focus (bypasses unreliable Screen routing) ──
+        if (enchantField != null
+                && mx >= leftX() && mx < leftX() + leftW()
+                && my >= enchFieldY() && my < enchFieldY() + 14) {
+            setFocused(enchantField);
+            enchantField.setFocused(true);
+            enchantField.onClick(click, false);
+            restoreFocus = 1;
+            onEnchantTyped(enchantFieldText);
+            return true;
+        }
+        if (itemField != null
+                && mx >= leftX() && mx < leftX() + leftW()
+                && my >= itemFieldY() && my < itemFieldY() + 14) {
+            setFocused(itemField);
+            itemField.setFocused(true);
+            itemField.onClick(click, false);
+            restoreFocus = 2;
+            onItemTyped(itemFieldText);
+            return true;
+        }
+
         if (enchantMaxLevel > 1) {
             int ty = sliderY();
             if (my >= ty - 4 && my <= ty + sliderH() + 6 && mx >= sliderX() && mx <= sliderX() + sliderW()) {

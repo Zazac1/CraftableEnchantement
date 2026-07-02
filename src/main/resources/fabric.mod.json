@@ -13,7 +13,7 @@
     "issues":   "https://github.com/Zazac1/CraftableEnchantement/issues"
   },
   "license": "MIT",
-  "icon": "assets/craftableenchantement/icon.png",
+  "icon": "assets/craftableenchantement/craftable_enchantement.png",
   "environment": "*",
   "entrypoints": {
     "main": [
