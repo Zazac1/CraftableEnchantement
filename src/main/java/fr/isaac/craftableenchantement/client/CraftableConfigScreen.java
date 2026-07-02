@@ -55,12 +55,12 @@ public class CraftableConfigScreen extends Screen {
                         clearAndInit();
                     }
                 }
-        ).dimensions(width - PAD - 60, disabledTop() - 2, 60, 18).build());
+        ).dimensions(width - PAD - 60, disabledTop() + 3, 60, 16).build());
 
-        // New disabled field
+        // New disabled field — inside section, below its header
         newDisabledField = addDrawableChild(new TextFieldWidget(
                 textRenderer,
-                PAD, disabledTop() - 2, width - PAD * 2 - 64, 18,
+                PAD + 2, disabledTop() + 3, width - PAD * 2 - 66, 16,
                 Text.literal("minecraft:enchantment_id")));
         newDisabledField.setPlaceholder(Text.literal("minecraft:mending"));
         newDisabledField.setMaxLength(100);
@@ -98,11 +98,11 @@ public class CraftableConfigScreen extends Screen {
         int visibleDisabled = maxVisibleDisabled();
         for (int i = disabledScroll; i < Math.min(disabled.size(), disabledScroll + visibleDisabled); i++) {
             final int idx = i;
-            int y = disabledTop() + (i - disabledScroll) * ROW + 22; // below add field
+            int y = disabledTop() + (i - disabledScroll) * ROW + 22;
             addDrawableChild(ButtonWidget.builder(
                     Text.literal("✕"),
                     b -> { disabled.remove(idx); clearAndInit(); }
-            ).dimensions(width - PAD - 22, y + 1, 20, 18).build());
+            ).dimensions(width - PAD - 22, y + 1, 20, 16).build());
         }
     }
 
@@ -165,11 +165,11 @@ public class CraftableConfigScreen extends Screen {
         for (int i = disabledScroll; i < Math.min(disabled.size(), disabledScroll + visibleDisabled); i++) {
             int y = disabledTop() + (i - disabledScroll) * ROW + 22;
             ctx.fill(PAD + 1, y, width - PAD - 24, y + ROW - 2, 0x55000000);
-            ctx.drawTextWithShadow(textRenderer, disabled.get(i), PAD + 5, y + 7, 0xE0E0E0);
+            ctx.drawTextWithShadow(textRenderer, disabled.get(i), PAD + 5, y + 6, 0xE0E0E0);
         }
         if (disabled.isEmpty()) {
             ctx.drawTextWithShadow(textRenderer, Text.literal("No disabled enchantments"),
-                    PAD + 5, disabledTop() + 22 + 6, 0x888888);
+                    PAD + 5, disabledTop() + 22 + 5, 0x888888);
         }
 
         super.render(ctx, mouseX, mouseY, delta);

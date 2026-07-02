@@ -105,7 +105,7 @@ public class RecipeAddScreen extends Screen {
     // ── layout constants ──────────────────────────────────────────────────
 
     private int panelTop() { return 28; }
-    private int panelH() { return height - panelTop() - 52; }
+    private int panelH() { return height - panelTop() - 72; }
     private int enchantPanelW() { return (width - 30) / 2; }
     private int itemPanelW() { return width - 30 - enchantPanelW(); }
     private int enchantPanelX() { return 8; }
@@ -156,8 +156,8 @@ public class RecipeAddScreen extends Screen {
         customEnchantField.setMaxLength(100);
         customEnchantField.setChangedListener(s -> useCustomEnchant = !s.isBlank());
 
-        // Level buttons
-        int lvlY = height - 44;
+        // Level buttons (below panels, above save buttons)
+        int lvlY = height - 46;
         addDrawableChild(ButtonWidget.builder(Text.literal("−"), b -> {
             if (level > 1) { level--; rebuildButtons(); }
         }).dimensions(width / 2 - 38, lvlY, 20, 18).build());
@@ -292,14 +292,13 @@ public class RecipeAddScreen extends Screen {
                 Text.literal("Selected: ").append(Text.literal(ingLabel).withColor(0xFFD700)),
                 ix + 4, panelTop() + panelH() - 14, 0xCCCCCC);
 
-        // ── Level control ─────────────────────────────────────────────
-        int lvlY = height - 44;
+        // ── Level label (above buttons, always fully visible) ──────────
         ctx.drawCenteredTextWithShadow(textRenderer,
                 Text.literal("Level: ").append(
                         Text.literal(toRoman(level)).withColor(0xFFD700)),
-                width / 2, lvlY + 4, 0xFFFFFF);
+                width / 2, height - 58, 0xFFFFFF);
 
-        // ── Recipe preview ────────────────────────────────────────────
+        // ── Recipe preview (above level label) ──────────────────────────
         String enchName = useCustomEnchant
                 ? customEnchantField.getText()
                 : (selectedEnchantIdx >= 0 && selectedEnchantIdx < filteredEnchants.size()
@@ -308,7 +307,7 @@ public class RecipeAddScreen extends Screen {
         String ingName = Registries.ITEM.getId(selectedIngredient).getPath().replace("_", " ");
         String preview = level + "× XP Bottle + Book + " + ingName + "  →  " + enchName + " " + toRoman(level);
         ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(preview),
-                width / 2, height - 46, 0xAAAAAA);
+                width / 2, height - 70, 0xAAAAAA);
 
         super.render(ctx, mouseX, mouseY, delta);
     }
