@@ -48,15 +48,15 @@ public abstract class ServerRecipeManagerMixin {
         if (!config.disabled_enchantments.isEmpty()) {
             recipes.removeIf(entry -> {
                 String path = entry.id().getValue().getPath(); // e.g. "fire_aspect_1"
+                if (!entry.id().getValue().getNamespace().equals(CraftableEnchantementMod.MOD_ID)) return false;
                 for (String disabled : config.disabled_enchantments) {
                     String disabledPath = disabled.contains(":")
                             ? disabled.split(":")[1]
                             : disabled;
-                    // Matches "fire_aspect_1", "fire_aspect_2", etc.
-                    if (path.startsWith(disabledPath + "_") &&
-                            entry.id().getValue().getNamespace().equals(CraftableEnchantementMod.MOD_ID)) {
-                        return true;
-                    }
+                    // Exact match  → e.g. "sharpness_5"  disables just that level
+                    if (path.equals(disabledPath)) return true;
+                    // Prefix match → e.g. "sharpness"     disables all levels
+                    if (path.startsWith(disabledPath + "_")) return true;
                 }
                 return false;
             });
