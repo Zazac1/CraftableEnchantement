@@ -1,0 +1,17 @@
+﻿{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    {"item": "minecraft:experience_bottle"},
+    {"item": "minecraft:book"},
+    {"item": "minecraft:prismarine_shard"}
+  ],
+  "result": {
+    "id": "minecraft:enchanted_book",
+    "components": {
+      "minecraft:stored_enchantments": {
+        "minecraft:aqua_affinity": 1
+      }
+    }
+  }
+}
