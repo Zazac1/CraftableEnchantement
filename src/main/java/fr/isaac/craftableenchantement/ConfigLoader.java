@@ -55,5 +55,10 @@ public final class ConfigLoader {
         }
     }
 
+    public static void saveAndInvalidate(ModConfig config) {
+        save(config);
+        invalidate();
+    }
+
     private ConfigLoader() {}
 }

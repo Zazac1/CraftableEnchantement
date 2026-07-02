@@ -12,17 +12,9 @@ public class ModConfig {
 
     /**
      * Custom shapeless enchanted-book recipes.
-     * Each entry: N XP bottles (= level) + book + ingredient → enchanted book at given level.
-     * Works for any enchantment ID, including modded ones.
+     * Format per entry: "enchantment_id|level|ingredient_id"
+     * Example: ["minecraft:fire_aspect|1|minecraft:flint_and_steel", "mymod:custom|2|minecraft:diamond"]
      */
-    public List<CustomRecipeEntry> custom_recipes = new ArrayList<>();
-
-    public static class CustomRecipeEntry {
-        /** Enchantment resource location, e.g. "minecraft:fire_aspect" or "mymod:custom_enchant" */
-        public String enchantment = "";
-        /** Enchantment level (number of XP bottles required). */
-        public int level = 1;
-        /** Item resource location used as thematic ingredient, e.g. "minecraft:flint_and_steel" */
-        public String ingredient = "";
-    }
+    public List<String> custom_recipes = new ArrayList<>();
 }
+

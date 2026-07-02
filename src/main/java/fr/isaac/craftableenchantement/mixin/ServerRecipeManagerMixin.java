@@ -63,8 +63,15 @@ public abstract class ServerRecipeManagerMixin {
         }
 
         // 2. Add custom recipes from config
-        for (ModConfig.CustomRecipeEntry entry : config.custom_recipes) {
-            RecipeEntry<?> recipe = buildRecipe(entry);
+        for (String entry : config.custom_recipes) {
+            String[] parts = entry.split("\\|", 3);
+            if (parts.length != 3) {
+                CraftableEnchantementMod.LOGGER.warn(
+                        "[CraftableEnchantement] Invalid custom recipe format (expected enchantment|level|ingredient): {}",
+                        entry);
+                continue;
+            }
+            RecipeEntry<?> recipe = buildRecipe(parts[0].trim(), parts[1].trim(), parts[2].trim());
             if (recipe != null) {
                 recipes.add(recipe);
             }
@@ -73,20 +80,22 @@ public abstract class ServerRecipeManagerMixin {
         return PreparedRecipes.of(recipes);
     }
 
-    private RecipeEntry<ShapelessRecipe> buildRecipe(ModConfig.CustomRecipeEntry entry) {
-        if (entry.enchantment == null || entry.enchantment.isEmpty()
-                || entry.ingredient == null || entry.ingredient.isEmpty()
-                || entry.level < 1) {
+    private RecipeEntry<ShapelessRecipe> buildRecipe(String enchantmentId, String levelStr, String ingredientId) {
+        int level;
+        try {
+            level = Integer.parseInt(levelStr);
+        } catch (NumberFormatException e) {
             CraftableEnchantementMod.LOGGER.warn(
-                    "[CraftableEnchantement] Skipping invalid custom recipe entry: {}", entry.enchantment);
+                    "[CraftableEnchantement] Invalid level '{}' in custom recipe", levelStr);
             return null;
         }
+        if (level < 1) return null;
 
         // Resolve enchantment
-        Identifier enchId = Identifier.tryParse(entry.enchantment);
+        Identifier enchId = Identifier.tryParse(enchantmentId);
         if (enchId == null) {
             CraftableEnchantementMod.LOGGER.warn(
-                    "[CraftableEnchantement] Invalid enchantment ID: {}", entry.enchantment);
+                    "[CraftableEnchantement] Invalid enchantment ID: {}", enchantmentId);
             return null;
         }
 
@@ -96,15 +105,15 @@ public abstract class ServerRecipeManagerMixin {
 
         if (enchEntry.isEmpty()) {
             CraftableEnchantementMod.LOGGER.warn(
-                    "[CraftableEnchantement] Enchantment not found in registry: {}", entry.enchantment);
+                    "[CraftableEnchantement] Enchantment not found: {}", enchantmentId);
             return null;
         }
 
         // Resolve ingredient item
-        Identifier ingId = Identifier.tryParse(entry.ingredient);
+        Identifier ingId = Identifier.tryParse(ingredientId);
         if (ingId == null || !Registries.ITEM.containsId(ingId)) {
             CraftableEnchantementMod.LOGGER.warn(
-                    "[CraftableEnchantement] Item not found: {}", entry.ingredient);
+                    "[CraftableEnchantement] Item not found: {}", ingredientId);
             return null;
         }
 
@@ -113,13 +122,13 @@ public abstract class ServerRecipeManagerMixin {
         net.minecraft.component.type.ItemEnchantmentsComponent.Builder builder =
                 new net.minecraft.component.type.ItemEnchantmentsComponent.Builder(
                         net.minecraft.component.type.ItemEnchantmentsComponent.DEFAULT);
-        builder.add(enchEntry.get(), entry.level);
+        builder.add(enchEntry.get(), level);
         result.set(DataComponentTypes.STORED_ENCHANTMENTS, builder.build());
 
-        // Build ingredients: N×XP bottle + book + thematic item
+        // Build ingredients
         List<Ingredient> ingredients = new ArrayList<>();
         Ingredient xpBottle = Ingredient.ofItems(Items.EXPERIENCE_BOTTLE);
-        for (int i = 0; i < entry.level; i++) {
+        for (int i = 0; i < level; i++) {
             ingredients.add(xpBottle);
         }
         ingredients.add(Ingredient.ofItems(Items.BOOK));
@@ -132,13 +141,12 @@ public abstract class ServerRecipeManagerMixin {
                 ingredients
         );
 
-        // Build a unique registry key for this custom recipe
         String safeName = enchId.getNamespace().equals("minecraft")
                 ? enchId.getPath()
                 : enchId.getNamespace() + "_" + enchId.getPath();
         RegistryKey<Recipe<?>> recipeKey = RegistryKey.of(
                 RegistryKeys.RECIPE,
-                Identifier.of(CraftableEnchantementMod.MOD_ID, "custom/" + safeName + "_" + entry.level)
+                Identifier.of(CraftableEnchantementMod.MOD_ID, "custom/" + safeName + "_" + level)
         );
 
         return new RecipeEntry<>(recipeKey, recipe);

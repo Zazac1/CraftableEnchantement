@@ -15,6 +15,9 @@
   "entrypoints": {
     "main": [
       "fr.isaac.craftableenchantement.CraftableEnchantementMod"
+    ],
+    "modmenu": [
+      "fr.isaac.craftableenchantement.client.ModMenuIntegration"
     ]
   },
   "mixins": [
@@ -27,6 +30,7 @@
     "fabric-api": "*"
   },
   "suggests": {
-    "modmenu": "*"
+    "modmenu": "*",
+    "cloth-config": "*"
   }
 }
