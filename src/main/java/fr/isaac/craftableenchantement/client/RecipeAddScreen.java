@@ -84,6 +84,8 @@ public class RecipeAddScreen extends Screen {
     private List<String[]> itemSugg    = new ArrayList<>();
     private String enchantFieldText = "";
     private String itemFieldText    = "";
+    /** Which field should get focus after the next clearAndInit(). 1=enchant, 2=item, 0=none */
+    private int restoreFocus = 0;
 
     private TextFieldWidget enchantField, itemField;
 
@@ -153,7 +155,8 @@ public class RecipeAddScreen extends Screen {
         String lvPart = (enchantMaxLevel > 1 && minLevel != maxLevel)
                 ? toRoman(minLevel) + "–" + toRoman(maxLevel) : toRoman(minLevel);
         addDrawableChild(makeCenteredLabel(width / 2, height - 36,
-                minLevel + "–" + maxLevel + "× XP + Book + " + it + "  →  " + en + " " + lvPart, 0x999999));
+                (minLevel == maxLevel ? minLevel + "\u00d7" : minLevel + "\u2013" + maxLevel + "\u00d7")
+                        + " XP + Book + " + it + "  \u2192  " + en + " " + lvPart, 0x999999));
 
         // Enchant suggestions via MultilineTextWidget
         if (!enchantSugg.isEmpty()) {
@@ -181,14 +184,14 @@ public class RecipeAddScreen extends Screen {
         enchantField.setPlaceholder(Text.literal("Type enchantment name…"));
         enchantField.setMaxLength(80);
         enchantField.setText(enchantFieldText);
-        enchantField.setChangedListener(s -> { enchantFieldText = s; onEnchantTyped(s); });
+        enchantField.setChangedListener(s -> { enchantFieldText = s; restoreFocus = 1; onEnchantTyped(s); });
 
         itemField = addDrawableChild(new TextFieldWidget(
                 textRenderer, leftX(), itemFieldY(), leftW(), 14, Text.literal("i")));
         itemField.setPlaceholder(Text.literal("Type item id…"));
         itemField.setMaxLength(80);
         itemField.setText(itemFieldText);
-        itemField.setChangedListener(s -> { itemFieldText = s; onItemTyped(s); });
+        itemField.setChangedListener(s -> { itemFieldText = s; restoreFocus = 2; onItemTyped(s); });
 
         // ── Buttons ────────────────────────────────────────────────────────
         addDrawableChild(ButtonWidget.builder(Text.literal("Cancel"),
@@ -201,10 +204,10 @@ public class RecipeAddScreen extends Screen {
 
     private int previewBoxY() {
         return Math.min(itemSuggY() + (itemSugg.isEmpty() ? 2 : itemSugg.size() * SUGG_H + 4), height - 60);
+        // Restore focus to the field the user was typing in
+        if (restoreFocus == 1) { setFocused(enchantField); restoreFocus = 0; }
+        else if (restoreFocus == 2) { setFocused(itemField); restoreFocus = 0; }
     }
-
-    // ── autocomplete ──────────────────────────────────────────────────────
-    private void onEnchantTyped(String q) {
         if (q.isBlank()) { enchantSugg = new ArrayList<>(); }
         else {
             String ql = q.toLowerCase(Locale.ROOT);

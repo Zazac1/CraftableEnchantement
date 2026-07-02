@@ -176,14 +176,17 @@ public class DisabledRecipesScreen extends Screen {
             ).dimensions(width - PAD - 70, y + 1, 70, ROW - 3).build());
         }
 
-        // Scroll hint
+        // Scroll indicator — plain ASCII avoids MultilineTextWidget wrapping issues
         if (ROWS.length > maxVisible()) {
+            int from = scroll + 1;
+            int to   = Math.min(scroll + maxVisible(), ROWS.length);
             MultilineTextWidget hint = new MultilineTextWidget(
                     width / 2, listTop() + listH() + 4,
-                    Text.literal((scroll + 1) + "–" + Math.min(scroll + maxVisible(), ROWS.length) + " / " + ROWS.length).withColor(0x666666),
+                    Text.literal(from + " - " + to + " / " + ROWS.length).withColor(0x777777),
                     textRenderer);
-            hint.setMaxWidth(200);
+            hint.setMaxWidth(width - 20);
             hint.setCentered(true);
+            hint.setMaxRows(1);
             addDrawableChild(hint);
         }
 
