@@ -11,6 +11,7 @@
     "sources": "https://github.com/Zazac1/CraftableEnchantement"
   },
   "license": "MIT",
+  "icon": "assets/craftableenchantement/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
