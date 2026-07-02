@@ -5,10 +5,12 @@
   "name": "Craftable Enchantement",
   "description": "Craft enchanted books directly in a crafting table using XP bottles, a book, and a thematic ingredient (e.g. flint & steel for Fire Aspect). Each enchantment level requires one more XP bottle. Fully survival-friendly and vanilla-balanced.",
   "authors": [
-    "stephen-kobe"
+    "Zazac1"
   ],
   "contact": {
-    "sources": "https://github.com/Zazac1/CraftableEnchantement"
+    "homepage": "https://github.com/Zazac1/CraftableEnchantement",
+    "sources":  "https://github.com/Zazac1/CraftableEnchantement",
+    "issues":   "https://github.com/Zazac1/CraftableEnchantement/issues"
   },
   "license": "MIT",
   "icon": "assets/craftableenchantement/icon.png",
