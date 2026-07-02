@@ -134,7 +134,7 @@ public class CraftableConfigScreen extends Screen {
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        renderBackground(ctx, mouseX, mouseY, delta);
+        ctx.fillGradient(0, 0, this.width, this.height, 0xC0101010, 0xD0101010);
 
         // Title
         ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
