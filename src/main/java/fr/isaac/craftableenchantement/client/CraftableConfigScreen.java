@@ -7,14 +7,12 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.MultilineTextWidget;
 import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Main config hub — three Minecraft-style buttons.
- */
 @Environment(EnvType.CLIENT)
 public class CraftableConfigScreen extends Screen {
 
@@ -32,34 +30,30 @@ public class CraftableConfigScreen extends Screen {
 
     @Override
     protected void init() {
-        int btnW = 200, btnH = 20;
-        int cx = width / 2 - btnW / 2;
-        int cy = height / 2 - 30;
+        int btnW = 200, btnH = 20, cx = width / 2 - btnW / 2, cy = height / 2 - 30;
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.literal("Activated Recipes"),
+        // Title via MultilineTextWidget (the ONLY working text API in MC 1.21.11)
+        MultilineTextWidget titleWidget = new MultilineTextWidget(
+                width / 2, height / 2 - 56, title, textRenderer);
+        titleWidget.setMaxWidth(width - 20);
+        titleWidget.setCentered(true);
+        addDrawableChild(titleWidget);
+
+        addDrawableChild(ButtonWidget.builder(Text.literal("Activated Recipes"),
                 b -> client.setScreen(new ActiveRecipesScreen(this))
         ).dimensions(cx, cy, btnW, btnH).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.literal("Default Recipes"),
+        addDrawableChild(ButtonWidget.builder(Text.literal("Default Recipes"),
                 b -> client.setScreen(new DisabledRecipesScreen(this))
         ).dimensions(cx, cy + 24, btnW, btnH).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.literal("Create a Recipe"),
+        addDrawableChild(ButtonWidget.builder(Text.literal("Create a Recipe"),
                 b -> client.setScreen(new RecipeAddScreen(this))
         ).dimensions(cx, cy + 48, btnW, btnH).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.literal("Done"),
+        addDrawableChild(ButtonWidget.builder(Text.literal("Done"),
                 b -> save()
         ).dimensions(cx, cy + 80, btnW, btnH).build());
-
-        // Title drawn through the MC drawable pipeline (fixes visibility)
-        addDrawable((ctx, mx, my, d) ->
-                ctx.drawCenteredTextWithShadow(textRenderer, title,
-                        width / 2, height / 2 - 55, 0xFFFFFF));
     }
 
     void save() {

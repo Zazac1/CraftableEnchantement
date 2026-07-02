@@ -2,10 +2,12 @@ package fr.isaac.craftableenchantement.client;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.MultilineTextWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.item.ItemStack;
@@ -20,19 +22,13 @@ import java.util.Locale;
 
 /**
  * Add-recipe screen.
- *
- * Rendering is split into three addDrawable() layers so all text and fills
- * go through Minecraft's own rendering pipeline — the only way to make text
- * visible in MC 1.21.11.
- *
- *  Layer A (first addDrawable): slot fills + grid items + slider track
- *  Layer B (addDrawableChild):  TextFieldWidgets + Buttons
- *  Layer C (last addDrawable):  all labels, suggestions overlays
+ * All text is rendered via MultilineTextWidget (the ONLY working text API in MC 1.21.11).
+ * Fills/items use addDrawable (works fine).
+ * Text field content is persisted across clearAndInit() in instance variables.
  */
 @Environment(EnvType.CLIENT)
 public class RecipeAddScreen extends Screen {
 
-    // ── enchantment catalogue ─────────────────────────────────────────────
     private static final String[][] ENCHANTMENTS = {
             {"minecraft:sharpness",            "Sharpness",            "5"},
             {"minecraft:smite",                "Smite",                "5"},
@@ -75,32 +71,22 @@ public class RecipeAddScreen extends Screen {
             {"minecraft:vanishing_curse",      "Curse of Vanishing",   "1"},
     };
 
-    // ── constants ─────────────────────────────────────────────────────────
-    private static final int PAD    = 8;
-    private static final int SLOT   = 20;
-    private static final int SUGG_H = 14;
-    private static final int MAX_S  = 6;
+    private static final int PAD = 8, SLOT = 20, SUGG_H = 14, MAX_S = 6;
 
-    // ── state ─────────────────────────────────────────────────────────────
     private final CraftableConfigScreen parent;
 
-    private String selectedEnchantId   = "";
-    private String selectedEnchantName = "";
-    private int    enchantMaxLevel     = 1;
-    private int    minLevel            = 1;
-    private int    maxLevel            = 1;
-    private int    draggingHandle      = 0; // 0=none 1=min 2=max
-
-    private String selectedItemId   = "";
-    private String selectedItemName = "";
-
+    // Persisted state (survives clearAndInit)
+    private String selectedEnchantId = "", selectedEnchantName = "";
+    private int enchantMaxLevel = 1, minLevel = 1, maxLevel = 1;
+    private int draggingHandle = 0;
+    private String selectedItemId = "", selectedItemName = "";
     private List<String[]> enchantSugg = new ArrayList<>();
     private List<String[]> itemSugg    = new ArrayList<>();
+    private String enchantFieldText = "";
+    private String itemFieldText    = "";
 
-    private TextFieldWidget enchantField;
-    private TextFieldWidget itemField;
+    private TextFieldWidget enchantField, itemField;
 
-    // ── constructor ───────────────────────────────────────────────────────
     public RecipeAddScreen(CraftableConfigScreen parent) {
         super(Text.literal("Add Custom Recipe"));
         this.parent = parent;
@@ -111,18 +97,15 @@ public class RecipeAddScreen extends Screen {
     private int leftW()  { return width / 2 - PAD - 6; }
     private int rightX() { return width / 2 + 4; }
     private int rightW() { return width - PAD - rightX(); }
-
     private int gridX()        { return rightX() + (rightW() - 3 * SLOT) / 2; }
     private int gridY()        { return 22; }
     private int sliderX()      { return rightX() + 4; }
     private int sliderW()      { return rightW() - 8; }
     private int sliderY()      { return gridY() + 3 * SLOT + 10; }
     private int sliderH()      { return 6; }
-
     private int enchLabelY()   { return 22; }
     private int enchFieldY()   { return enchLabelY() + 10; }
     private int enchSuggY()    { return enchFieldY() + 14; }
-
     private int itemLabelY()   { return enchSuggY() + MAX_S * SUGG_H + 10; }
     private int itemFieldY()   { return itemLabelY() + 10; }
     private int itemSuggY()    { return itemFieldY() + 14; }
@@ -139,82 +122,137 @@ public class RecipeAddScreen extends Screen {
     }
 
     // ── init ─────────────────────────────────────────────────────────────
-
     @Override
     protected void init() {
-        // ── Layer A : fills + grid (before widgets, so they're behind) ────
-        addDrawable((ctx, mx, my, d) -> renderLayerA(ctx, mx, my));
+        // ── Fills + grid + slider (addDrawable works) ─────────────────────
+        addDrawable((ctx, mx, my, d) -> renderFills(ctx, mx, my));
 
-        // ── Layer B : widgets ─────────────────────────────────────────────
+        // ── Static labels via MultilineTextWidget ─────────────────────────
+        addDrawableChild(makeLabel(leftX(), enchLabelY(), "Enchantment:", 0xCCCCCC));
+        addDrawableChild(makeLabel(leftX(), itemLabelY(),  "Ingredient:",  0xCCCCCC));
+
+        // Level label (re-created on clearAndInit so it reflects current state)
+        String lvlTxt = enchantMaxLevel <= 1 ? "Level I"
+                : (minLevel == maxLevel ? "Level " + toRoman(minLevel)
+                : "Level " + toRoman(minLevel) + " – " + toRoman(maxLevel));
+        addDrawableChild(makeCenteredLabel(sliderX() + sliderW() / 2,
+                sliderY() + sliderH() + 5, lvlTxt + " / " + toRoman(enchantMaxLevel), 0xFFD700));
+
+        // Arrow
+        addDrawableChild(makeCenteredLabel(gridX() + 3 * SLOT + 6, gridY() + SLOT + 5, "→", 0xFFFFFF));
+
+        // Selected item name
+        if (!selectedItemId.isEmpty()) {
+            addDrawableChild(makeLabel(leftX() + 22, previewBoxY() + (20 - 8) / 2,
+                    selectedItemName, 0x88FF88));
+        }
+
+        // Preview line
+        String en = selectedEnchantName.isEmpty() ? "?" : selectedEnchantName;
+        String it = selectedItemName.isEmpty() ? "?" : selectedItemName.toLowerCase(Locale.ROOT);
+        String lvPart = (enchantMaxLevel > 1 && minLevel != maxLevel)
+                ? toRoman(minLevel) + "–" + toRoman(maxLevel) : toRoman(minLevel);
+        addDrawableChild(makeCenteredLabel(width / 2, height - 36,
+                minLevel + "–" + maxLevel + "× XP + Book + " + it + "  →  " + en + " " + lvPart, 0x999999));
+
+        // Enchant suggestions via MultilineTextWidget
+        if (!enchantSugg.isEmpty()) {
+            for (int i = 0; i < enchantSugg.size(); i++) {
+                String[] e = enchantSugg.get(i);
+                int ry = enchSuggY() + i * SUGG_H;
+                addDrawableChild(makeLabel(leftX() + 4, ry + 3,
+                        e[1] + "  (max " + e[2] + ")", 0xBBBBBB));
+            }
+        }
+
+        // Item suggestions via MultilineTextWidget
+        if (!itemSugg.isEmpty()) {
+            for (int i = 0; i < itemSugg.size(); i++) {
+                String[] s = itemSugg.get(i);
+                int ry = itemSuggY() + i * SUGG_H;
+                addDrawableChild(makeLabel(leftX() + 20, ry + 3,
+                        s[1] + "  " + s[0], 0xCCCCCC));
+            }
+        }
+
+        // ── Text fields ────────────────────────────────────────────────────
         enchantField = addDrawableChild(new TextFieldWidget(
                 textRenderer, leftX(), enchFieldY(), leftW(), 14, Text.literal("e")));
-        enchantField.setPlaceholder(Text.literal("Type enchantment name\u2026"));
+        enchantField.setPlaceholder(Text.literal("Type enchantment name…"));
         enchantField.setMaxLength(80);
-        enchantField.setChangedListener(this::onEnchantTyped);
+        enchantField.setText(enchantFieldText);
+        enchantField.setChangedListener(s -> { enchantFieldText = s; onEnchantTyped(s); });
 
         itemField = addDrawableChild(new TextFieldWidget(
                 textRenderer, leftX(), itemFieldY(), leftW(), 14, Text.literal("i")));
-        itemField.setPlaceholder(Text.literal("Type item id (flint_and_steel\u2026)"));
+        itemField.setPlaceholder(Text.literal("Type item id…"));
         itemField.setMaxLength(80);
-        itemField.setChangedListener(this::onItemTyped);
+        itemField.setText(itemFieldText);
+        itemField.setChangedListener(s -> { itemFieldText = s; onItemTyped(s); });
 
+        // ── Buttons ────────────────────────────────────────────────────────
         addDrawableChild(ButtonWidget.builder(Text.literal("Cancel"),
                 b -> client.setScreen(parent)
         ).dimensions(width / 2 - 102, height - 22, 98, 18).build());
-
-        addDrawableChild(ButtonWidget.builder(Text.literal("\u2713  Add Recipe"),
+        addDrawableChild(ButtonWidget.builder(Text.literal("✓  Add Recipe"),
                 b -> confirm()
         ).dimensions(width / 2 + 4, height - 22, 98, 18).build());
+    }
 
-        // ── Layer C : text + suggestions (last = on top of everything) ────
-        addDrawable((ctx, mx, my, d) -> renderLayerC(ctx, mx, my));
+    private int previewBoxY() {
+        return Math.min(itemSuggY() + (itemSugg.isEmpty() ? 2 : itemSugg.size() * SUGG_H + 4), height - 60);
     }
 
     // ── autocomplete ──────────────────────────────────────────────────────
-
     private void onEnchantTyped(String q) {
-        if (q.isBlank()) { enchantSugg = new ArrayList<>(); return; }
-        String ql = q.toLowerCase(Locale.ROOT);
-        enchantSugg = new ArrayList<>();
-        for (String[] e : ENCHANTMENTS)
-            if (e[1].toLowerCase(Locale.ROOT).contains(ql) || e[0].contains(ql)) {
-                enchantSugg.add(e);
-                if (enchantSugg.size() >= MAX_S) break;
-            }
+        if (q.isBlank()) { enchantSugg = new ArrayList<>(); }
+        else {
+            String ql = q.toLowerCase(Locale.ROOT);
+            enchantSugg = new ArrayList<>();
+            for (String[] e : ENCHANTMENTS)
+                if (e[1].toLowerCase(Locale.ROOT).contains(ql) || e[0].contains(ql)) {
+                    enchantSugg.add(e); if (enchantSugg.size() >= MAX_S) break;
+                }
+        }
+        clearAndInit();
     }
 
     private void onItemTyped(String q) {
-        if (q.isBlank()) { itemSugg = new ArrayList<>(); return; }
-        String ql = q.toLowerCase(Locale.ROOT);
-        itemSugg = new ArrayList<>();
-        for (var entry : Registries.ITEM.getEntrySet()) {
-            if (entry.getValue() == Items.AIR) continue;
-            String id = entry.getKey().getValue().toString();
-            if (id.contains(ql) || entry.getKey().getValue().getPath().contains(ql)) {
-                itemSugg.add(new String[]{id, pathToName(id)});
-                if (itemSugg.size() >= MAX_S) break;
+        if (q.isBlank()) { itemSugg = new ArrayList<>(); }
+        else {
+            String ql = q.toLowerCase(Locale.ROOT);
+            itemSugg = new ArrayList<>();
+            for (var entry : Registries.ITEM.getEntrySet()) {
+                if (entry.getValue() == Items.AIR) continue;
+                String id = entry.getKey().getValue().toString();
+                if (id.contains(ql) || entry.getKey().getValue().getPath().contains(ql)) {
+                    itemSugg.add(new String[]{id, pathToName(id)});
+                    if (itemSugg.size() >= MAX_S) break;
+                }
             }
         }
+        clearAndInit();
     }
 
     private void selectEnchant(String[] e) {
         selectedEnchantId = e[0]; selectedEnchantName = e[1];
         enchantMaxLevel   = Integer.parseInt(e[2]);
         minLevel = 1; maxLevel = enchantMaxLevel;
-        enchantField.setText(e[1]);
-        enchantSugg = new ArrayList<>();
+        enchantFieldText  = e[1];
+        enchantSugg       = new ArrayList<>();
+        clearAndInit();
     }
 
     private void selectItem(String[] s) {
-        selectedItemId = s[0]; selectedItemName = s[1];
-        itemField.setText(s[1].toLowerCase(Locale.ROOT).replace(" ", "_"));
-        itemSugg = new ArrayList<>();
+        selectedItemId   = s[0]; selectedItemName = s[1];
+        itemFieldText    = s[1].toLowerCase(Locale.ROOT).replace(" ", "_");
+        itemSugg         = new ArrayList<>();
+        clearAndInit();
     }
 
-    // ── Layer A render (fills + grid items + slider) ───────────────────────
-
-    private void renderLayerA(DrawContext ctx, int mx, int my) {
-        // Crafting grid slots + items
+    // ── fills + grid ──────────────────────────────────────────────────────
+    private void renderFills(DrawContext ctx, int mx, int my) {
+        // Grid slots + items
         int gx0 = gridX(), gy0 = gridY();
         for (int r = 0; r < 3; r++) for (int c = 0; c < 3; c++) {
             int sx = gx0 + c * SLOT, sy = gy0 + r * SLOT;
@@ -223,8 +261,7 @@ public class RecipeAddScreen extends Screen {
         }
         for (int i = 0; i < 9; i++) {
             ItemStack stk = slotItem(i);
-            if (!stk.isEmpty())
-                ctx.drawItem(stk, gx0 + (i % 3) * SLOT + 2, gy0 + (i / 3) * SLOT + 2);
+            if (!stk.isEmpty()) ctx.drawItem(stk, gx0 + (i % 3) * SLOT + 2, gy0 + (i / 3) * SLOT + 2);
         }
         // Result slot
         int resX = gx0 + 3 * SLOT + 12, resY = gy0 + SLOT;
@@ -232,7 +269,7 @@ public class RecipeAddScreen extends Screen {
         drawBox(ctx, resX, resY, SLOT, SLOT, 0xFF908830);
         ctx.drawItem(new ItemStack(Items.ENCHANTED_BOOK), resX + 2, resY + 2);
 
-        // Range slider track
+        // Range slider
         if (enchantMaxLevel > 1) {
             int ty = sliderY();
             ctx.fill(sliderX(), ty, sliderX() + sliderW(), ty + sliderH(), 0xFF404040);
@@ -241,94 +278,35 @@ public class RecipeAddScreen extends Screen {
                 int tx = handleX(lv) + 3;
                 ctx.fill(tx - 1, ty - 2, tx + 1, ty, 0xFF888888);
             }
-            // Min handle
-            int mhx = handleX(minLevel);
-            ctx.fill(mhx, ty - 2, mhx + 6, ty + sliderH() + 2,
-                    (Math.abs(mx - mhx - 3) <= 6 || draggingHandle == 1) ? 0xFFDDDDDD : 0xFF999999);
+            int mhx = handleX(minLevel), Mhx = handleX(maxLevel);
+            ctx.fill(mhx, ty - 2, mhx + 6, ty + sliderH() + 2, draggingHandle == 1 || Math.abs(mx - mhx - 3) <= 6 ? 0xFFDDDDDD : 0xFF999999);
             drawBox(ctx, mhx, ty - 2, 6, sliderH() + 4, 0xFF444444);
-            // Max handle
-            int Mhx = handleX(maxLevel);
-            ctx.fill(Mhx, ty - 2, Mhx + 6, ty + sliderH() + 2,
-                    (Math.abs(mx - Mhx - 3) <= 6 || draggingHandle == 2) ? 0xFFDDDDDD : 0xFF999999);
+            ctx.fill(Mhx, ty - 2, Mhx + 6, ty + sliderH() + 2, draggingHandle == 2 || Math.abs(mx - Mhx - 3) <= 6 ? 0xFFDDDDDD : 0xFF999999);
             drawBox(ctx, Mhx, ty - 2, 6, sliderH() + 4, 0xFF444444);
         }
 
-        // Selected item preview bar
+        // Selected item preview box
         if (!selectedItemId.isEmpty()) {
-            int py = previewY();
+            int py = previewBoxY();
             ctx.fill(leftX(), py, leftX() + leftW(), py + 20, 0x88203020);
             drawBox(ctx, leftX(), py, leftW(), 20, 0xFF447744);
             var item = Registries.ITEM.get(Identifier.tryParse(selectedItemId));
-            if (item != null && item != Items.AIR)
-                ctx.drawItem(new ItemStack(item), leftX() + 2, py + 2);
-        }
-    }
-
-    private int previewY() {
-        return Math.min(itemSuggY() + (itemSugg.isEmpty() ? 2 : itemSugg.size() * SUGG_H + 4),
-                height - 60);
-    }
-
-    // ── Layer C render (all text + suggestions) ────────────────────────────
-
-    private void renderLayerC(DrawContext ctx, int mx, int my) {
-        // Title
-        ctx.drawCenteredTextWithShadow(textRenderer, title, width / 2, 10, 0xFFFFFF);
-
-        // Section labels
-        ctx.drawTextWithShadow(textRenderer, "Enchantment:", leftX(), enchLabelY(), 0xCCCCCC);
-        ctx.drawTextWithShadow(textRenderer, "Ingredient:",  leftX(), itemLabelY(), 0xCCCCCC);
-
-        // Arrow →
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("\u2192"),
-                gridX() + 3 * SLOT + 6, gridY() + SLOT + 5, 0xFFFFFF);
-
-        // Level label
-        String lvlTxt = enchantMaxLevel <= 1
-                ? "Level I"
-                : (minLevel == maxLevel ? "Level " + toRoman(minLevel)
-                : "Level " + toRoman(minLevel) + " \u2013 " + toRoman(maxLevel));
-        ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.literal(lvlTxt).withColor(0xFFD700),
-                sliderX() + sliderW() / 2,
-                sliderY() + sliderH() + 5, 0xFFFFFF);
-
-        // Selected item name in preview box
-        if (!selectedItemId.isEmpty()) {
-            int py = previewY();
-            ctx.drawTextWithShadow(textRenderer,
-                    Text.literal(selectedItemName).withColor(0x88FF88)
-                            .append(Text.literal("  \u00a78" + selectedItemId)),
-                    leftX() + 22, py + 6, 0xCCCCCC);
+            if (item != null && item != Items.AIR) ctx.drawItem(new ItemStack(item), leftX() + 2, py + 2);
         }
 
-        // Preview line
-        String en = selectedEnchantName.isEmpty() ? "?" : selectedEnchantName;
-        String it = selectedItemName.isEmpty() ? "?" : selectedItemName.toLowerCase(Locale.ROOT);
-        String lvPart = (enchantMaxLevel > 1 && minLevel != maxLevel)
-                ? toRoman(minLevel) + "\u2013" + toRoman(maxLevel) : toRoman(minLevel);
-        ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.literal(minLevel + "\u2013" + maxLevel
-                        + "\u00d7 XP + Book + " + it + "  \u2192  " + en + " " + lvPart),
-                width / 2, height - 36, 0x999999);
-
-        // ── Enchantment suggestions overlay ──────────────────────────────
+        // Enchant suggestion backgrounds + item icons
         if (!enchantSugg.isEmpty()) {
             int sy = enchSuggY(), sw = leftW(), sh = enchantSugg.size() * SUGG_H;
             ctx.fill(leftX(), sy, leftX() + sw, sy + sh, 0xFF1A1C28);
             drawBox(ctx, leftX(), sy, sw, sh, 0xFF4A5578);
             for (int i = 0; i < enchantSugg.size(); i++) {
-                String[] e = enchantSugg.get(i);
                 int ry = sy + i * SUGG_H;
-                boolean hov = mx >= leftX() && mx < leftX() + sw && my >= ry && my < ry + SUGG_H;
-                if (hov) ctx.fill(leftX() + 1, ry, leftX() + sw - 1, ry + SUGG_H, 0x553355BB);
-                ctx.drawTextWithShadow(textRenderer,
-                        e[1] + " \u00a77(max " + e[2] + ")",
-                        leftX() + 4, ry + 3, hov ? 0xFFFFFF : 0xBBBBBB);
+                if (mx >= leftX() && mx < leftX() + sw && my >= ry && my < ry + SUGG_H)
+                    ctx.fill(leftX() + 1, ry, leftX() + sw - 1, ry + SUGG_H, 0x553355BB);
             }
         }
 
-        // ── Item suggestions overlay ──────────────────────────────────────
+        // Item suggestion backgrounds + item icons
         if (!itemSugg.isEmpty()) {
             int sy = itemSuggY(), sw = leftW(), sh = itemSugg.size() * SUGG_H;
             ctx.fill(leftX(), sy, leftX() + sw, sy + sh, 0xFF1A1C28);
@@ -336,19 +314,15 @@ public class RecipeAddScreen extends Screen {
             for (int i = 0; i < itemSugg.size(); i++) {
                 String[] s = itemSugg.get(i);
                 int ry = sy + i * SUGG_H;
-                boolean hov = mx >= leftX() && mx < leftX() + sw && my >= ry && my < ry + SUGG_H;
-                if (hov) ctx.fill(leftX() + 1, ry, leftX() + sw - 1, ry + SUGG_H, 0x553355BB);
+                if (mx >= leftX() && mx < leftX() + sw && my >= ry && my < ry + SUGG_H)
+                    ctx.fill(leftX() + 1, ry, leftX() + sw - 1, ry + SUGG_H, 0x553355BB);
                 var item = Registries.ITEM.get(Identifier.tryParse(s[0]));
                 if (item != null && item != Items.AIR)
                     ctx.drawItem(new ItemStack(item), leftX() + 2, ry);
-                ctx.drawTextWithShadow(textRenderer,
-                        s[1] + "  \u00a78" + s[0],
-                        leftX() + 20, ry + 3, hov ? 0xFFFFFF : 0xCCCCCC);
             }
         }
     }
 
-    // ── slot item ─────────────────────────────────────────────────────────
     private ItemStack slotItem(int slot) {
         if (slot < maxLevel) return new ItemStack(Items.EXPERIENCE_BOTTLE);
         if (slot == maxLevel) return new ItemStack(Items.BOOK);
@@ -359,7 +333,7 @@ public class RecipeAddScreen extends Screen {
         return ItemStack.EMPTY;
     }
 
-    // ── render (minimal — just gradient + pipeline call) ──────────────────
+    // ── render ────────────────────────────────────────────────────────────
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         ctx.fillGradient(0, 0, width, height, 0xC0101010, 0xD0101010);
@@ -370,45 +344,30 @@ public class RecipeAddScreen extends Screen {
     @Override
     public boolean mouseClicked(Click click, boolean focused) {
         double mx = click.x(), my = click.y();
-
-        // Slider interaction
         if (enchantMaxLevel > 1) {
             int ty = sliderY();
-            if (my >= ty - 4 && my <= ty + sliderH() + 6
-                    && mx >= sliderX() && mx <= sliderX() + sliderW()) {
+            if (my >= ty - 4 && my <= ty + sliderH() + 6 && mx >= sliderX() && mx <= sliderX() + sliderW()) {
                 int dMin = Math.abs((int)mx - (handleX(minLevel) + 3));
                 int dMax = Math.abs((int)mx - (handleX(maxLevel) + 3));
-                if (dMin <= dMax) {
-                    draggingHandle = 1; minLevel = levelFromX(mx);
-                    if (minLevel > maxLevel) maxLevel = minLevel;
-                } else {
-                    draggingHandle = 2; maxLevel = levelFromX(mx);
-                    if (maxLevel < minLevel) minLevel = maxLevel;
-                }
-                return true;
+                if (dMin <= dMax) { draggingHandle = 1; minLevel = levelFromX(mx); if (minLevel > maxLevel) maxLevel = minLevel; }
+                else              { draggingHandle = 2; maxLevel = levelFromX(mx); if (maxLevel < minLevel) minLevel = maxLevel; }
+                clearAndInit(); return true;
             }
         }
-
-        // Enchantment suggestion
         if (!enchantSugg.isEmpty()) {
             int sy = enchSuggY(), sw = leftW();
-            if (mx >= leftX() && mx < leftX() + sw && my >= sy
-                    && my < sy + enchantSugg.size() * SUGG_H) {
+            if (mx >= leftX() && mx < leftX() + sw && my >= sy && my < sy + enchantSugg.size() * SUGG_H) {
                 int idx = (int)(my - sy) / SUGG_H;
                 if (idx >= 0 && idx < enchantSugg.size()) { selectEnchant(enchantSugg.get(idx)); return true; }
             }
         }
-
-        // Item suggestion
         if (!itemSugg.isEmpty()) {
             int sy = itemSuggY(), sw = leftW();
-            if (mx >= leftX() && mx < leftX() + sw && my >= sy
-                    && my < sy + itemSugg.size() * SUGG_H) {
+            if (mx >= leftX() && mx < leftX() + sw && my >= sy && my < sy + itemSugg.size() * SUGG_H) {
                 int idx = (int)(my - sy) / SUGG_H;
                 if (idx >= 0 && idx < itemSugg.size()) { selectItem(itemSugg.get(idx)); return true; }
             }
         }
-
         return super.mouseClicked(click, focused);
     }
 
@@ -418,15 +377,13 @@ public class RecipeAddScreen extends Screen {
             int lv = levelFromX(click.x());
             if (draggingHandle == 1) { minLevel = lv; if (minLevel > maxLevel) maxLevel = minLevel; }
             else                     { maxLevel = lv; if (maxLevel < minLevel) minLevel = maxLevel; }
-            return true;
+            clearAndInit(); return true;
         }
         return super.mouseDragged(click, dx, dy);
     }
 
-    @Override
-    public boolean mouseReleased(Click click) { draggingHandle = 0; return super.mouseReleased(click); }
+    @Override public boolean mouseReleased(Click click) { draggingHandle = 0; return super.mouseReleased(click); }
 
-    // ── keyboard ──────────────────────────────────────────────────────────
     @Override
     public boolean keyPressed(KeyInput k) {
         if (k.key() == 256) { client.setScreen(parent); return true; }
@@ -444,6 +401,16 @@ public class RecipeAddScreen extends Screen {
     }
 
     // ── helpers ───────────────────────────────────────────────────────────
+    private MultilineTextWidget makeLabel(int x, int y, String text, int color) {
+        MultilineTextWidget w = new MultilineTextWidget(x, y, Text.literal(text).withColor(color), textRenderer);
+        w.setMaxWidth(leftW()); w.setMaxRows(1); return w;
+    }
+
+    private MultilineTextWidget makeCenteredLabel(int cx, int y, String text, int color) {
+        MultilineTextWidget w = new MultilineTextWidget(cx, y, Text.literal(text).withColor(color), textRenderer);
+        w.setMaxWidth(width - 10); w.setCentered(true); w.setMaxRows(1); return w;
+    }
+
     private void drawBox(DrawContext ctx, int x, int y, int w, int h, int c) {
         ctx.drawHorizontalLine(x, x + w - 1, y, c);
         ctx.drawHorizontalLine(x, x + w - 1, y + h - 1, c);
@@ -451,10 +418,7 @@ public class RecipeAddScreen extends Screen {
         ctx.drawVerticalLine(x + w - 1, y, y + h - 1, c);
     }
 
-    private String toRoman(int n) {
-        return switch (n) { case 1->"I"; case 2->"II"; case 3->"III"; case 4->"IV"; case 5->"V"; default->String.valueOf(n); };
-    }
-
+    private String toRoman(int n) { return switch(n){case 1->"I";case 2->"II";case 3->"III";case 4->"IV";case 5->"V";default->String.valueOf(n);}; }
     private String pathToName(String id) {
         String[] words = (id.contains(":") ? id.split(":")[1] : id).split("_");
         StringBuilder sb = new StringBuilder();
