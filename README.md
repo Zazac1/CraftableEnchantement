@@ -1,25 +1,16 @@
 # Craftable Enchantement
 
-A Fabric mod for Minecraft 1.21.11 that lets you craft any enchanted book directly in a crafting table.
+A Fabric mod for Minecraft 1.21.11 that lets you craft any enchanted book directly in a crafting table using XP bottles, a book, and a thematic ingredient.
 
 ## Features
 
-- 📖 Craft **113 enchanted books** covering every vanilla enchantment
-- 🧪 Each recipe uses **N XP bottles** (one per level) + a **book** + a **thematic ingredient**
-- ⚖️ Shapeless recipes — items can be placed in any slot
-- 🗡️ Weapons, armor, tools, bow, crossbow, trident, fishing rod and curses are all supported
-- 🔨 No custom items, no config — pure data-pack approach, fully vanilla-compatible
-- 🌐 Works in singleplayer and multiplayer (server-side mod)
-
-## Crafting Logic
-
-| Slot content | Purpose |
-|---|---|
-| N × Experience Bottle | Sets the enchantment **level** (1–5 bottles) |
-| 1 × Book | Base material |
-| 1 × Thematic item | Identifies the **enchantment type** |
-
-Example — Fire Aspect II: `2 × Experience Bottle + Book + Flint and Steel`
+- 📖 **113 enchanted books** — every vanilla enchantment, every level
+- 🧪 Each recipe uses **N XP bottles** (one per level) + **1 Book** + **1 thematic ingredient**
+- ⚖️ Shapeless recipes — items can be placed in any crafting slot
+- 🗡️ Covers weapons, armor, tools, bow, crossbow, trident, fishing rod and curses
+- 🚫 Disable any default recipe individually via the in-game config
+- ➕ Add custom recipes for modded enchantments via the in-game config
+- ⚙️ Full ModMenu GUI — browse active recipes, toggle defaults, create new ones
 
 ## Build & Installation
 
