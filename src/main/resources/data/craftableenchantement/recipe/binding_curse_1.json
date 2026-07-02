@@ -4,7 +4,7 @@
   "ingredients": [
     "minecraft:experience_bottle",
     "minecraft:book",
-    "minecraft:chain"
+    "minecraft:lead"
   ],
   "result": {
     "id": "minecraft:enchanted_book",
