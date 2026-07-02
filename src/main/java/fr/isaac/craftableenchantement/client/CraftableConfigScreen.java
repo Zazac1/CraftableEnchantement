@@ -37,14 +37,7 @@ public class CraftableConfigScreen extends Screen {
     }
 
     @Override
-    protected void init() {
-        // Add recipe button
-        addDrawableChild(ButtonWidget.builder(
-                Text.literal("+ Add Recipe"),
-                b -> client.setScreen(new RecipeAddScreen(this))
-        ).dimensions(width - PAD - 110, recipeTop() - 2, 110, 18).build());
-
-        // Add disabled enchant button
+    protected void init() {        // Add disabled enchant button
         addDrawableChild(ButtonWidget.builder(
                 Text.literal("+ Add"),
                 b -> {
